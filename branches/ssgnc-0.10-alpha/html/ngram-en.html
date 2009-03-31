@@ -1,0 +1,60 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Google N-gram Search</title>
+</head>
+<body>
+<h2>Google N-gram Search</h2>
+<hr>
+<form method="get" action="/cgi-bin/google-ngram">
+<table cellspacing="10pt">
+<tr><td>Query</td>
+<td><input type="text" name="q" /></td>
+<td>Input white-space separated unigrams. (Ex: "apple juice")</td></tr>
+<tr><td></td><td colspan="2">
+<input type="radio" name="t" value="unordered" checked="checked" /> Unordered
+<input type="radio" name="t" value="ordered" /> Ordered
+<input type="radio" name="t" value="phrase" /> Phrase
+<input type="radio" name="t" value="fixed" /> Fixed
+&nbsp;&nbsp; Choose the way of matching.</td></tr>
+<tr><td>N-grams</td>
+<td><input type="text" name="n" value="all" /></td>
+<td>Input 'k' of target k-grams. (Ex: "3", "2,4-5")</td></tr>
+<tr><td>No. Results</td>
+<td><input type="text" name="m" value="100" /></td>
+<td>Input the maximum number of search results. (Ex: "100", "all")</td></tr>
+<tr><td>Min. Frequency</td><td>
+<input type="text" name="f" value="100" /></td>
+<td>Input the minimum frequency of search results. (Ex: "20", "100")</td></tr>
+<tr><td>Results</td><td colspan="2">
+<input type="radio" name="c" value="open" checked="checked" /> Browse
+<input type="radio" name="c" value="save" /> Download
+&nbsp;&nbsp; Choose how to receive search results.</td></tr>
+</table>
+<input type="hidden" name="l" value="en">
+<input type="submit" value="Submit" />
+</form>
+<p>For details, see
+<a href="ngram-en-help.html">Google N-gram Search HowTo</a>.</p>
+<hr>
+<h3>About Search Results</h3>
+<ul>
+<li>Search results for a query "Tokushima Univ"</li>
+<blockquote>
+1785 Tokushima Univ<br>
+1693 Tokushima Univ .<br>
+1115 , Tokushima Univ<br>
+1086 , Tokushima Univ .<br>
+955 &lt;S&gt; , Tokushima Univ<br>
+953 &lt;S&gt; , Tokushima Univ .<br>
+339 ( Tokushima Univ<br>
+320 ( Tokushima Univ .<br>
+243 Tokushima Univ . )<br>
+242 Tokushima Univ . ) &lt;/S&gt;<br>
+</blockquote>
+<li>Frequencies and n-grams are separated by white-spaces.</li>
+</ul>
+<p>Copyright 2006, 2007 Google Inc.</p>
+<hr>
+</body>
+</html>
