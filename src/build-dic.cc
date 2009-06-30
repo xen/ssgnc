@@ -6,8 +6,8 @@
 #include <iostream>
 #include <string>
 
-#include <nanika/dawgdic/dawg-builder.h>
-#include <nanika/dawgdic/dictionary-builder.h>
+#include <dawgdic/dawg-builder.h>
+#include <dawgdic/dictionary-builder.h>
 
 int main()
 {
@@ -17,7 +17,7 @@ int main()
 	int key_id = 0;
 	const char *line;
 	ssgnc::LineReader reader(&std::cin);
-	nanika::dawgdic::DawgBuilder builder;
+	dawgdic::DawgBuilder builder;
 	while (reader.Read(&line))
 	{
 		const char *delim = strchr(line, '\t');
@@ -41,15 +41,15 @@ int main()
 				<< ", time: " << timer.Elapsed() << '\r';
 		}
 	}
-	nanika::dawgdic::Dawg dawg;
+	dawgdic::Dawg dawg;
 	builder.Finish(&dawg);
 
 	std::cerr << "count: " << key_id
 		<< ", time: " << timer.Elapsed() << '\r';
 
 	// Builds a dictionary.
-	nanika::dawgdic::Dictionary dic;
-	if (!nanika::dawgdic::DictionaryBuilder::Build(dawg, &dic))
+	dawgdic::Dictionary dic;
+	if (!dawgdic::DictionaryBuilder::Build(dawg, &dic))
 	{
 		std::cerr << "error: failed to build dictionary" << std::endl;
 		return 1;
