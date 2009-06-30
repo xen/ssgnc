@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-#include <nanika/dawgdic/dictionary.h>
+#include <dawgdic/dictionary.h>
 
 namespace ssgnc {
 
@@ -63,7 +63,7 @@ public:
 
 private:
 	int size_;
-	nanika::dawgdic::Dictionary dic_;
+	dawgdic::Dictionary dic_;
 
 	// Disallows copies.
 	VocabDic(const VocabDic &);
