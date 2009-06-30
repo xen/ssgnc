@@ -7,12 +7,18 @@ AC_CONFIG_SRCDIR([src/build-dic.cc])
 AM_INIT_AUTOMAKE
 
 # Checks for programs.
+AC_PROG_CC
 AC_PROG_CXX
-AC_PROG_INSTALL
+
+AC_LANG_CPLUSPLUS
 
 # Checks for libraries.
 
 # Checks for header files.
+
+# Checks for C++ header files.
+AC_CHECK_HEADERS([dawgdic/dawg.h], ,
+	[AC_MSG_ERROR(dawgdic 0.30 or later: not found)])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL

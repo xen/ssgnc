@@ -1,4 +1,4 @@
-// This program builds a dictionary from sorted unigrams.
+// This program builds a dictionary from a sorted vocabulary.
 
 #include "ssgnc/line-reader.h"
 #include "ssgnc/timer.h"
@@ -20,7 +20,7 @@ int main()
 	dawgdic::DawgBuilder builder;
 	while (reader.Read(&line))
 	{
-		const char *delim = strchr(line, '\t');
+		const char *delim = std::strchr(line, '\t');
 		if (delim == NULL)
 		{
 			std::cerr << "error: failed to find delimitor: "
@@ -29,6 +29,7 @@ int main()
 		}
 		std::size_t key_length = static_cast<std::size_t>(delim - line);
 
+		// Checks the format of lines.
 		char *end;
 		int key_id = std::strtol(delim + 1, &end, 10);
 		if (key_id < 0 || *end != '\0')
@@ -37,6 +38,7 @@ int main()
 			return 1;
 		}
 
+		// Inserts keys in dictionary order.
 		if (!builder.Insert(line, key_length, key_id))
 		{
 			std::cerr << "error: failed to insert key: " << line << std::endl;

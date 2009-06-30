@@ -13,14 +13,6 @@ class VocabDic
 {
 public:
 	VocabDic() : size_(0), dic_() {}
-	explicit VocabDic(const FileMapper &file) : size_(0), dic_()
-	{
-		MapDic(file);
-	}
-	VocabDic(const void *address, std::size_t size) : size_(0), dic_()
-	{
-		MapDic(address, size);
-	}
 
 	// Reads a dictionary.
 	bool ReadDic(std::istream *input)
@@ -40,7 +32,7 @@ public:
 	// Maps a dictionary.
 	void MapDic(const FileMapper &file)
 	{
-		MapDic(file.Address(), file.Size());
+		MapDic(file.address(), file.size());
 	}
 	void MapDic(const void *address, std::size_t)
 	{
@@ -59,7 +51,7 @@ public:
 	}
 
 	// Returns the number of keys.
-	int Size() const { return size_; }
+	int size() const { return size_; }
 
 private:
 	int size_;
