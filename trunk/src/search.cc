@@ -1,8 +1,6 @@
-#include "ssgnc/file-mapper.h"
-#include "ssgnc/inverted-db.h"
-#include "ssgnc/path-generator.h"
-#include "ssgnc/vocab-dic.h"
-#include "ssgnc/vocab-index.h"
+#include "ssgnc/unified-db.h"
+#include "ssgnc/unified-reader.h"
+#include "ssgnc/vocab-pair.h"
 
 #include <iostream>
 #include <string>
@@ -10,7 +8,6 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
-#include <boost/shared_ptr.hpp>
 
 namespace {
 
@@ -50,111 +47,91 @@ int main(int argc, char *argv[])
 	if (!AnalyzeOptions(argc, argv, &vmap))
 		return 1;
 
-	std::string input_dir = vmap["dir"].as<std::string>();
-	ssgnc::PathGenerator path_gen(input_dir);
+	// Parameters.
+	const std::string &dir_name = vmap["dir"].as<std::string>();
+	const std::string &order_name = vmap["order"].as<std::string>();
+	const long long max_results = vmap["results"].as<long long>();
+	const long long min_freq = vmap["freq"].as<long long>();
 
-	// Opens a vocabulary dictionary.
-	ssgnc::FileMapper dic_file;
-	std::cerr << "VocabDic: " << path_gen.VocabDicPath() << std::endl;
-	if (!dic_file.Map(path_gen.VocabDicPath().c_str()))
+	// Paths of vocabulary files and databases.
+	ssgnc::PathGenerator path_gen;
+	path_gen.set_dir_name(dir_name);
+
+	// Opens vocabulary files.
+	ssgnc::VocabPair vocab;
+	if (!vocab.Open(path_gen))
 	{
-		std::cerr << "error: failed to map dictionary" << std::endl;
+		std::cerr << "error: failed to open vocabulary files" << std::endl;
 		return 1;
 	}
-	ssgnc::VocabDic vocab_dic;
-	vocab_dic.MapDic(dic_file);
-
-	// Opens a vocabulary index.
-	ssgnc::FileMapper index_file;
-	std::cerr << "VocabIndex: " << path_gen.VocabIndexPath() << std::endl;
-	if (!index_file.Map(path_gen.VocabIndexPath().c_str()))
-	{
-		std::cerr << "error: failed to map index" << std::endl;
-		return 1;
-	}
-	ssgnc::VocabIndex vocab_index;
-	vocab_index.MapIndex(index_file);
 
 	// Opens databases.
-	std::vector<boost::shared_ptr<ssgnc::FileMapper> > db_files(1);
-	std::vector<boost::shared_ptr<ssgnc::InvertedDb> > dbs(1);
-	for (int i = 1; ; ++i)
+	ssgnc::UnifiedDb db;
+	if (!db.Open(path_gen))
 	{
-		boost::shared_ptr<ssgnc::FileMapper> db_file(new ssgnc::FileMapper);
-		if (!db_file->Map(path_gen.DbPath(i).c_str()))
-			break;
-		std::cerr << "Database: " << path_gen.DbPath(i) << std::endl;
-		boost::shared_ptr<ssgnc::InvertedDb> db(new ssgnc::InvertedDb);
-		db->MapDb(i, *db_file);
-
-		db_files.push_back(db_file);
-		dbs.push_back(db);
+		std::cerr << "error: failed to open databases" << std::endl;
+		return 1;
 	}
+
+	// Sets shared options of queries.
+	ssgnc::Query query;
+	if (boost::istarts_with("UNORDERED", order_name))
+		query.set_order(ssgnc::Query::UNORDERED);
+	else if (boost::istarts_with("ORDERED", order_name))
+		query.set_order(ssgnc::Query::ORDERED);
+	else if (boost::istarts_with("PHRASE", order_name))
+		query.set_order(ssgnc::Query::PHRASE);
+	else if (boost::istarts_with("FIXED", order_name))
+		query.set_order(ssgnc::Query::FIXED);
+	query.set_min_freq(min_freq);
 
 	std::string line;
 	while (std::getline(std::cin, line))
 	{
+		// Parses a query into a list of keys.
+		boost::replace_all(line, "0x810x40", " ");
+		boost::trim(line);
 		std::vector<std::string> key_strings;
-		boost::split(key_strings, line, boost::is_space());
+		boost::split(key_strings, line, boost::is_space(),
+			boost::token_compress_on);
 
-		// Gets key IDs.
-		std::vector<int> key_ids;
+		query.clear_key_string();
 		for (std::size_t i = 0; i < key_strings.size(); ++i)
 		{
-			int key_id;
-			if (!vocab_dic.Find(key_strings[i].c_str(), &key_id))
-			{
-				std::cerr << "warning: failed to find key: "
-					<< key_strings[i] << std::endl;
-				break;
-			}
-			key_ids.push_back(key_id);
-			std::cerr << "Key: " << key_strings[i]
-				<< ": " << key_id << std::endl;
+			if (query.order() == ssgnc::Query::FIXED && key_strings[i] == "*")
+				query.add_key_string("");
+			else
+				query.add_key_string(key_strings[i]);
 		}
-		if (key_ids.size() != key_strings.size())
-			continue;
 
-		// Searches n-grams from databases.
-		for (std::size_t i = key_ids.size(); i < dbs.size(); ++i)
+		if (!vocab.FillQuery(&query))
 		{
-			// Finds the uniquest key.
-			std::size_t min_id = 0;
-			std::size_t min_size = static_cast<std::size_t>(1) << 63;
-			for (std::size_t j = 0; j < key_ids.size(); ++j)
-			{
-				ssgnc::DbReader reader;
-				dbs[i]->Find(key_ids[j], &reader);
-				if (reader.size() < min_size)
-				{
-					min_id = j;
-					min_size = reader.size();
-				}
-			}
-			std::cerr << "Size: " << key_strings[min_id]
-				<< ": " << min_size << '\n';
-			ssgnc::DbReader reader;
-			if (!dbs[i]->Find(key_ids[min_id], &reader))
-				continue;
+			std::cerr << "warning: failed to fill query" << std::endl;
+			continue;
+		}
 
-			// Reads n-grams.
-			ssgnc::Ngram ngram;
-			while (reader.Read(&ngram))
+		ssgnc::UnifiedReader reader;
+		if (!reader.Open(db, query))
+		{
+			std::cerr << "warning: no matching n-grams" << std::endl;
+			continue;
+		}
+
+		ssgnc::Ngram ngram;
+		for (long long count = 0; count < max_results &&
+			reader.Read(&ngram); ++count)
+		{
+			if (!vocab.FillNgram(&ngram))
 			{
-				std::cout << ngram.freq() << ':';
-				for (int j = 0; j < ngram.key_size(); ++j)
-				{
-					const char *key_string;
-					if (vocab_index.Find(ngram.key(j), &key_string))
-						std::cout << ' ' << key_string;
-					else
-					{
-						std::cerr << "error: failed to find key: "
-							<< ngram.key(j) << std::endl;
-					}
-				}
-				std::cout << '\n';
+				std::cerr << "error: failed to restore n-gram" << std::endl;
+				continue;
 			}
+
+			std::cout << ngram.freq() << '\t';
+			std::cout << ngram.key_string(0);
+			for (int i = 1; i < ngram.key_string_size(); ++i)
+				std::cout << ' ' << ngram.key_string(i);
+			std::cout << '\n';
 		}
 	}
 

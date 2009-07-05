@@ -9,38 +9,42 @@ namespace ssgnc {
 class PathGenerator
 {
 public:
-	explicit PathGenerator(const std::string &data_dir) : data_dir_(data_dir)
+	PathGenerator() : dir_name_(".") {}
+
+	void set_dir_name(const std::string &dir_name)
 	{
-		while (!data_dir_.empty())
+		dir_name_ = dir_name;
+		while (!dir_name_.empty())
 		{
-			if (data_dir_[data_dir_.length() - 1] != '/')
+			if (dir_name_[dir_name_.length() - 1] != '/')
 				break;
-			data_dir_.resize(data_dir_.length() - 1);
+			dir_name_.resize(dir_name_.length() - 1);
 		}
 	}
+	const std::string &dir_name() const { return dir_name_; }
 
 	// Generates a default dictionary path.
 	std::string VocabDicPath() const
 	{
-		return data_dir_ + "/vocab.dic";
+		return dir_name_ + "/vocab.dic";
 	}
 
 	// Generates a default vocabulary path.
 	std::string VocabIndexPath() const
 	{
-		return data_dir_ + "/vocab.idx";
+		return dir_name_ + "/vocab.idx";
 	}
 
 	// Generates a default text path.
 	std::string DbPath(int n) const
 	{
 		std::ostringstream stream;
-		stream << data_dir_ << '/' << n << "gms.db";
+		stream << dir_name_ << '/' << n << "gms.db";
 		return stream.str();
 	}
 
 private:
-	std::string data_dir_;
+	std::string dir_name_;
 
 	// Disallows copies.
 	PathGenerator(const PathGenerator &);

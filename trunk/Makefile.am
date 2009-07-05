@@ -1,4 +1,4 @@
-SUBDIRS = src
+SUBDIRS = src test
 
 bin_SCRIPTS = ssgnc-index.sh
 

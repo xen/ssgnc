@@ -2,6 +2,7 @@
 #define SSGNC_VOCAB_DIC_H
 
 #include "file-mapper.h"
+#include "query.h"
 
 #include <iostream>
 
@@ -13,6 +14,12 @@ class VocabDic
 {
 public:
 	VocabDic() : size_(0), dic_() {}
+
+	void Clear()
+	{
+		size_ = 0;
+		dic_.Clear();
+	}
 
 	// Reads a dictionary.
 	bool ReadDic(std::istream *input)
@@ -48,6 +55,25 @@ public:
 	bool Find(const char *key, std::size_t length, int *key_id) const
 	{
 		return dic_.Find(key, length, key_id);
+	}
+
+	// Fills key IDs in a query.
+	bool FillQuery(Query *query) const
+	{
+		query->clear_key_id();
+		for (int i = 0; i < query->key_string_size(); ++i)
+		{
+			if (query->order() == Query::FIXED && query->key_string(i).empty())
+				query->add_key_id(-1);
+			else
+			{
+				int key_id = -1;
+				if (!Find(query->key_string(i).c_str(), &key_id))
+					return false;
+				query->add_key_id(key_id);
+			}
+		}
+		return true;
 	}
 
 	// Returns the number of keys.

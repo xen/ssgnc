@@ -2,6 +2,7 @@
 #define SSGNC_VOCAB_INDEX_H
 
 #include "file-mapper.h"
+#include "ngram.h"
 
 #include <string>
 
@@ -11,6 +12,13 @@ class VocabIndex
 {
 public:
 	VocabIndex() : keys_(NULL), positions_(NULL), size_(0) {}
+
+	void Clear()
+	{
+		keys_ = NULL;
+		positions_ = NULL;
+		size_ = 0;
+	}
 
 	// Maps an index.
 	void MapIndex(const FileMapper &file)
@@ -42,7 +50,7 @@ public:
 			return false;
 		*key = keys_ + positions_[id];
 		*length = static_cast<std::size_t>(
-			positions_[id + 1] - positions_[id]);
+			(positions_[id + 1] - 1) - positions_[id]);
 		return true;
 	}
 	bool Find(int id, std::string *key) const
@@ -52,6 +60,20 @@ public:
 		if (!Find(id, &key_begin, &length))
 			return false;
 		key->assign(key_begin, length);
+		return true;
+	}
+
+	// Fills key strings in an n-gram.
+	bool FillNgram(Ngram *ngram) const
+	{
+		ngram->clear_key_string();
+		for (int i = 0; i < ngram->key_id_size(); ++i)
+		{
+			const char *key_string;
+			if (!Find(ngram->key_id(i), &key_string))
+				return false;
+			ngram->add_key_string(key_string);
+		}
 		return true;
 	}
 

@@ -24,6 +24,7 @@ ssgnc_include_HEADERS = \
 	ssgnc/data-divider.h \
 	ssgnc/data-merger.h \
 	ssgnc/db-divider.h \
+	ssgnc/db-filter.h \
 	ssgnc/db-merger.h \
 	ssgnc/db-reader.h \
 	ssgnc/fd-streambuf.h \
@@ -33,10 +34,14 @@ ssgnc_include_HEADERS = \
 	ssgnc/mem-streambuf.h \
 	ssgnc/ngram.h \
 	ssgnc/path-generator.h \
+	ssgnc/query.h \
 	ssgnc/tempfile-manager.h \
 	ssgnc/text-encoder.h \
 	ssgnc/timer.h \
+	ssgnc/unified-db.h \
+	ssgnc/unified-reader.h \
 	ssgnc/varint-reader.h \
 	ssgnc/varint-writer.h \
 	ssgnc/vocab-dic.h \
-	ssgnc/vocab-index.h
+	ssgnc/vocab-index.h \
+	ssgnc/vocab-pair.h
