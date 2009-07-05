@@ -1,11 +1,9 @@
 #! /bin/sh
 
-date
-
 ## Shows usage if passed arguments are invalid.
-if [ $# -lt 2 -o $# -gt 4 ]
+if [ $# -lt 2 -o $# -gt 5 ]
 then
-	echo "Usage: $0 InputDir OutputDir [MemSize] [TempDir]"
+	echo "Usage: $0 InputDir OutputDir [MemSize] [TempDir] [BinDir]"
 	exit 1
 fi
 
@@ -14,6 +12,7 @@ input_dir=`dirname "$1/input"`
 output_dir=`dirname "$2/output"`
 mem_size=512
 temp_dir="/tmp"
+bin_dir=""
 
 ## The 3rd argument: The available memory size.
 if [ $# -ge 3 ]
@@ -30,12 +29,25 @@ fi
 if [ $# -ge 4 ]
 then
 	temp_dir="$4"
-	if [ ! -d $temp_dir ]
+	if [ ! -d "$temp_dir" ]
 	then
 		echo "error: no such directory: $temp_dir"
 		exit 1
 	fi
 fi
+
+## The 5th argument: The binary directory
+if [ $# -ge 5 ]
+then
+	bin_dir="`dirname "$5/bin"`/"
+	if [ ! -d "$bin_dir" ]
+	then
+		echo "error: no such directory: $bin_dir"
+		exit 1
+	fi
+fi
+
+date
 
 ## Shows I/O directories.
 echo "Input directory: $input_dir"
@@ -87,9 +99,9 @@ else
 	echo "creating $vocab_dic_path ..."
 	gzip -cd "$vocab_path" | \
 		LANG=C sort -S "$mem_size" -T "$temp_dir" -srnk 2 | \
-		src/ssgnc-freq-to-id | \
+		"$bin_dir"ssgnc-freq-to-id | \
 		LANG=C sort -S "$mem_size" -T "$temp_dir" | \
-		src/ssgnc-build-vocab-dic > "$vocab_dic_path"
+		"$bin_dir"ssgnc-build-vocab-dic > "$vocab_dic_path"
 	if [ $? -ne 0 ]
 	then
 		exit 1
@@ -107,7 +119,7 @@ else
 	echo "creating $vocab_index_path ..."
 	gzip -cd "$vocab_path" | \
 		LANG=C sort -S "$mem_size" -T "$temp_dir" -srnk 2 | \
-		src/ssgnc-build-vocab-index > "$vocab_index_path"
+		"$bin_dir"ssgnc-build-vocab-index > "$vocab_index_path"
 	if [ $? -ne 0 ]
 	then
 		exit 1
@@ -124,9 +136,9 @@ then
 else
 	echo "creating $db_path ..."
 	gzip -cd "$vocab_path" | \
-		src/ssgnc-encode-text "$vocab_dic_path" | \
-		src/ssgnc-sort-data 1 "$mem_size" "$temp_dir" | \
-		src/ssgnc-build-db 1 "$mem_size" "$temp_dir" > "$db_path"
+		"$bin_dir"ssgnc-encode-text "$vocab_dic_path" | \
+		"$bin_dir"ssgnc-sort-data 1 "$mem_size" "$temp_dir" | \
+		"$bin_dir"ssgnc-build-db 1 "$mem_size" "$temp_dir" > "$db_path"
 	if [ $? -ne 0 ]
 	then
 		exit 1
@@ -146,9 +158,10 @@ do
 	else
 		echo "creating $db_path ..."
 		gzip -cd "$input_dir/${n}gms/${n}gm-0"* | \
-			src/ssgnc-encode-text "$vocab_dic_path" | \
-			src/ssgnc-sort-data "$n" "$mem_size" "$temp_dir" | \
-			src/ssgnc-build-db "$n" "$mem_size" "$temp_dir" > "$db_path"
+			"$bin_dir"ssgnc-encode-text "$vocab_dic_path" | \
+			"$bin_dir"ssgnc-sort-data "$n" "$mem_size" "$temp_dir" | \
+			"$bin_dir"ssgnc-build-db "$n" "$mem_size" "$temp_dir" \
+				> "$db_path"
 		if [ $? -ne 0 ]
 		then
 			exit 1

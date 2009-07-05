@@ -42,5 +42,5 @@ AC_TYPE_SIZE_T
 AC_FUNC_MMAP
 AC_CHECK_FUNCS([clock_gettime gettimeofday memmove munmap strchr strtol])
 
-AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile test/Makefile])
 AC_OUTPUT

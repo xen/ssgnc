@@ -29,6 +29,15 @@ public:
 		positions_ -= size_;
 	}
 
+	// Finds n-grams that contain a given key and returns the size of a range.
+	bool FindSize(int key_id, std::size_t *size) const
+	{
+		if (key_id < 0 || key_id >= size_ - 1)
+			return false;
+		*size = positions_[key_id + 1] - positions_[key_id];
+		return true;
+	}
+
 	// Finds n-grams that contain a given key.
 	// Returns false if there are no n-grams available.
 	bool Find(int key_id, DbReader *reader) const
@@ -40,6 +49,8 @@ public:
 		return true;
 	}
 
+	// Returns a parameter n.
+	int n() const { return n_; }
 	// Returns the number of keys.
 	int size() const { return size_; }
 

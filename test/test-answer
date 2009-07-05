@@ -1,0 +1,99 @@
+100	a
+40	a e
+30	a d
+30	e a
+20	a c
+20	c a
+20	a e e
+20	e d a
+300	b
+100	b d
+100	e b
+80	c b
+70	b d
+70	c e b
+50	b c
+50	d b
+50	c c b
+50	c e b e
+30	b d e
+30	c b b
+30	c d b
+30	e b e
+30	c e b e c
+20	b d b
+20	d d b
+20	c c b c
+20	c c b e
+20	e c c b
+100	c d
+80	d c
+50	d e c
+50	e d e c
+40	d e e c
+30	c d b
+30	d c d
+30	d d c
+30	e d c
+30	e c e d
+30	e d e c e
+20	c d c
+20	d c e
+20	c e e c d
+20	d e e c c
+200	c e
+200	e c
+100	c e e
+70	c c e
+70	c e b
+70	e c e
+50	d e c
+50	c e b e
+50	c e e c
+50	e d e c
+40	e c c
+40	c c e e
+40	d e e c
+30	e d c
+30	e c e d
+30	e c e e
+30	c e b e c
+30	e d e c e
+20	d c e
+20	c c b e
+200	d e
+150	e d
+80	d e e
+50	d e c
+50	e d e
+50	e d e c
+40	d e e c
+30	b d e
+30	d e d
+30	e d c
+30	e c e d
+30	e d e c e
+20	d c e
+20	e d a
+20	c e e c d
+20	d e e c c
+250	e e
+100	c e e
+80	d e e
+70	e c e
+50	e d e
+50	c e b e
+50	c e e c
+50	e d e c
+40	c c e e
+40	d e e c
+30	e b e
+30	e c e d
+30	e c e e
+30	c e b e c
+30	e d e c e
+20	a e e
+20	c e e e
+20	c c e e b
+20	c e e c d
+20	d e e c c

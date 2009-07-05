@@ -45,15 +45,17 @@ public:
 			int key;
 			if (!reader_->Read(&key))
 				return false;
-			ngram->add_key(key);
+			ngram->add_key_id(key);
 		}
 		return true;
 	}
 
-	// Returns the number of bytes read.
-	std::size_t total() const { return byte_reader_->total(); }
+	// Returns a parameter n.
+	int n() const { return n_; }
 	// Returns the number of bytes in a range.
 	std::size_t size() const { return size_; }
+	// Returns the number of bytes read.
+	std::size_t total() const { return byte_reader_->total(); }
 
 private:
 	int n_;
