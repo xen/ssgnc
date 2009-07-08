@@ -1,0 +1,73 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Google N-gram Search HowTo</title>
+</head>
+<body>
+<h2>Google N-gram Search HowTo</h2>
+<hr>
+<h3>Query</h3>
+<p>
+Please input unigrams separated by white-spaces.<br>
+E.g. "apple juice", "is a"
+</p>
+<p>
+Four kinds of matching methods are available.
+</p>
+<ul>
+<li>"Unordered": Searches n-grams which contain given unigrams in any order.<br>
+Users can specify the minimum number of occurrences by passing the same unigram more than once.<br>
+E.g. Query "day day" matches "day by day" but not "of the day."</li>
+<li>"Ordered": Searches n-grams which contain given unigrams in order.<br>
+E.g. Query "milk coffee" matches "milk and coffee" but not "coffee and milk."</li>
+<li>"Phrase": Searches n-grams which contain a given phrase.<br>
+E.g. Query "milk coffee" matches "frothy milk coffee" but not "milk and coffee."</li>
+<li>"Fixed": Searches n-grams using a wildcard character '*'.<br>
+E.g. Query "milk *" matches "milk coffee" and "milk chocolate."
+</ul>
+<hr>
+<h3>N-grams</h3>
+<p>
+Please input 'k' of target k-grams.<br>
+E.g. If "3" is given, it searches 3-grams.<br>
+E.g. If "1-7" is given, it searches 1-grams to 5-grams.<br>
+E.g. If "4-" is given, it searches 4-grams and 5-grams.<br>
+</p>
+<p>
+English Google N-gram Resources consist of 1-grams to 5-grams.<br>
+Japanese Google N-gram Resources consist of 1-grams to 7-grams.
+</p>
+<hr>
+<h3>No. Results</h3>
+<p>
+Please input the maximum number of search results.<br>
+E.g. If "1" is given, it returns only one n-gram which has the maximum frequency.<br>
+E.g. If "100" is given, it returns the top 100 n-grams.
+</p>
+<p>
+If the number of search results will be large (more than 10,000), please choose "Download." Otherwise, a browser might freeze, in particular Internet Explorers.
+</p>
+<hr>
+<h3>Min. Frequency</h3>
+<p>
+Please input the minimum frequency of search results.<br>
+E.g. If "10" is given, it returns all n-grams matching a given query.<br>
+E.g. If "1000" is given, it returns n-grams with frequencies not less than 1000.
+</p>
+<p>
+English Google N-gram Resources consist of unigrams with frequencies not less than 200 and n-grams with frequencies not less than 40.<br>
+Japanese Google N-gram Resources consist of unigrams with frequencies not less than 50 and n-grams with frequencies not less than 20.
+</p>
+<hr>
+<h3>Results</h3>
+<p>
+Please choose how to get search results.<br>
+"Browse": Displays search results on a browser.<br>
+"Save": Popups a download dialog for search results.
+</p>
+<p>
+If the number of search results will be large (more than 10,000), please choose "Download." Otherwise, a browser might freeze, in particular Internet Explorers.
+</p>
+<hr>
+</body>
+</html>
