@@ -4,6 +4,7 @@
 #include "inverted-db.h"
 #include "path-generator.h"
 
+#include <climits>
 #include <vector>
 
 #include <boost/shared_ptr.hpp>
@@ -27,10 +28,11 @@ public:
 	}
 
 	// Opens databases in a directory.
-	bool Open(const PathGenerator &path_gen)
+	bool Open(const PathGenerator &path_gen,
+		int min_n = 1, int max_n = INT_MAX - 1)
 	{
 		Clear();
-		for (int i = 1; ; ++i)
+		for (int i = min_n; i <= max_n; ++i)
 		{
 			if (!AddDb(i, path_gen.DbPath(i).c_str()))
 				break;

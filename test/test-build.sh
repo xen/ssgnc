@@ -1,6 +1,6 @@
 #! /bin/sh
 
-sh_path="../ssgnc-index.sh"
+sh_path="../ssgnc-build-index.sh"
 bin_dir="../src"
 data_dir="./data"
 index_dir="./index"
