@@ -1,16 +1,17 @@
 #summary Google N-gram 検索システム
-#labels Featured
+#labels Phase-Requirements,Phase-Design,Featured
 
 = はじめに =
 
-Google が公開している大規模 N-gram の検索を補助するシステムです．
+大規模 N-gram コーパスの検索を補助するシステムであり，
+Google により作成された日本語と英語のコーパスを想定しています．
 
 == 機能 ==
 
-Google N-gram に対するインデックスを構築することにより，
-1-gram の AND 検索やワイルドカードを用いた検索などが可能となります．
+Google N-gram に対して転置データベース（インデックス）を構築することにより，
+unigram の AND 検索やワイルドカードを用いた検索が可能となります．
 
- * 検索方法
+ * 検索方式
   * AND 検索
    * 「りんご」と「みかん」が出現する n-gram
   * 順序付き AND 検索
@@ -18,26 +19,37 @@ Google N-gram に対するインデックスを構築することにより，
   * フレーズ検索
    * 「りんご」と「みかん」が続けて出現する n-gram
   * ワイルドカード検索
-   * 「 `* * の よう な * *` 」（'`*`' は任意の 1-gram）に一致する n-gram
+   * 「 `* * の よう な * *` 」（'`*`' は任意の unigram）に一致する n-gram
 
-grep などのコマンドを併用すれば，より詳細な検索が実現できます．
+grep などのコマンドを併用すれば，より詳細な検索も実現できます．
 
-※ インデックス自体には，任意の 1-gram を含む n-gram を頻度降順に取り出す程度の能力しかありません．
+※ 本システムにより構築されるインデックス自体には，
+任意の unigram を含む n-gram を頻度降順に取り出す程度の能力しかありません．
+
+----
 
 == 動作環境 ==
 
-Linux を前提として開発をおこなっており，Ubuntu 8.10 server にて動作確認をしています．
-なお，2GB を超えるファイルに対して mmap() を使用するため，32-bit 版では正常に動作しません．
+Linux での利用を想定して開発しており，
+64-bit 版の Ubuntu server で動作確認をしています．
+サイズが 2GB を超える大きなファイルに対して mmap() を使用するため，
+32-bit 版では正常に動作しません．
 
-Mac などの環境で動作するかどうかは未確認です．
+Mac OSX などの環境で動作するかどうかは未確認です．
+
+----
 
 == 用意するもの ==
 
-本システムをビルドするためには，以下のツールが必要となります．
+本システムのビルドには，以下のツールが必要となります．
 
  * g++
  * make
  * libboost-dev
+ * dawgdic
+  * http://code.google.com/p/dawgdic/
+
+----
 
 = 構成 =
 
@@ -45,42 +57,53 @@ Mac などの環境で動作するかどうかは未確認です．
 
 圧縮された状態の Google N-gram を展開しつつ，インデックスを構築します．
 
- ./ngram-index.sh 入力ディレクトリ 出力ディレクトリ
+ ssgnc-build-index.sh 入力ディレクトリ 出力ディレクトリ
 
  * 第一引数：Google N-gram の DVD に含まれるデータを展開したディレクトリ
  * 第二引数：インデックスを配置するディレクトリ
 
- 例）./ngram-index.sh ../data ../index
+ 例）ssgnc-build-index.sh ./data ./index
 
-英語版および日本語版の Google N-gram に対してインデックスを構築した場合，サイズは以下のようになります．
-作業領域も必要となるため，200GB 以上の空き領域を確保してからインデックスを構築するようにしてください．
+英語版および日本語版の Google N-gram に対してインデックスを構築した場合，
+サイズは以下のようになります．
+作業領域も必要となるため，200GB 以上の空き領域を確保してから
+インデックスを構築するようにしてください．
 
  * インデックスのサイズ
-  * 英語版 Google N-gram: 123GB
-  * 日本語版 Google N-gram: 151GB
+  * 英語版 Google N-gram: 123GB 以下（未確認）
+  * 日本語版 Google N-gram: 145GB
 
-※ 出力されるデータには Google N-gram 自体も含まれますが，簡単のためにインデックスと表記しています．
+※ 出力されるインデックスには，Google N-gram 自体も含まれます．
+
+----
 
 == 検索コマンド ==
 
-インデックスを用いて Google N-gram の検索をおこないます．
+インデックスを用いて Google N-gram からの検索をおこないます．
 
- ./simple-client -d DIR -q QUERY
+ ssgnc-search -d DataDir
 
- * DIR：インデックスのあるディレクトリ
- * QUERY：クエリ（1-gram を空白により区切ったもの）
+ * DataDir：インデックスのあるディレクトリ
 
- 例）./simple-client -d /home/google-ngram -q "検索 システム"
+ 例）ssgnc-search -d /home/ssgnc/ja
 
-その他のオプションについては ./simple-client -h をご覧ください．
+その他のオプションについては ssgnc-search -h をご覧ください．
+
+----
 
 == CGI プログラム ==
 
-srcs/cgi-config.h を編集して cgi-main.cpp をコンパイルすると，CGI として利用できるバイナリが生成されます．
+CGI プログラムを生成するスクリプトが利用できます．
 
- make cgi
+ ssgnc-gen-cgi.pl DataDir > CgiPerl
 
-インデックス構築前に cgi-config.h を編集していた場合，構築時に ./google-ngram という CGI 用のコマンドが作成されているので，
-CGI のディレクトリ（/usr/lib/cgi-bin あたり）にコピーすれば使えます．
+ * DataDir：インデックスのあるディレクトリ
+ * CgiPerl：CGI プログラム
 
-./html の中に CGI 用の HTML があるので，ご利用ください．
+ 例）ssgnc-gen-cgi.pl /home/ssgnc/ja > ssgnc-ja.pl
+
+生成された Perl スクリプトを CGI プログラム用のディレクトリ
+（/usr/lib/cgi-bin あたり）にコピーすれば使えます．
+
+./html の中に HTML があるので，ご利用ください．
+ただし，必要に応じてパスを修正する必要があります．
