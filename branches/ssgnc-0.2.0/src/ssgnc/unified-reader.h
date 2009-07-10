@@ -40,8 +40,10 @@ public:
 			if (filter->Open(db.db(i), query))
 			{
 				if (filter->Read(query, &ngram))
+				{
 					ngrams_.push_back(ngram);
-				filters_.push_back(filter);
+					filters_.push_back(filter);
+				}
 			}
 		}
 		for (std::size_t i = 0; i < ngrams_.size(); ++i)
