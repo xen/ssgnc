@@ -34,6 +34,12 @@ my $order = $cgi->param("t") || $cgi->param("order") || "UNORDERED";
 my $min_freq = $cgi->param("f") || $cgi->param("min_freq") || "0";
 my $max_results = $cgi->param("m") || $cgi->param("max_results") || "100";
 my $n_range = $cgi->param("n") || $cgi->param("n_range") || "1-100";
+my $content_type = $cgi->param("c") || $cgi->param("content_type") || "open";
+
+## Checks keywords.
+if ((lc $min_freq) eq "all") { $min_freq = 0; }
+if ((lc $max_results) eq "all") { $max_results = 2147483647; }
+if ((lc $n_range) eq "all") { $n_range = "1-"; }
 
 ## Removes single quotes from parameters.
 $query =~ s/'//g;
@@ -43,7 +49,15 @@ $max_results =~ s/'//g;
 $n_range =~ s/'//g;
 
 ## Prints an HTTP response header.
-print("Content-Type: text/plain; charset=utf-8\n\n");
+if ($content_type eq "save")
+{
+	print("Content-Type: text/download; name=\"ngram.txt\"\n");
+	print("Content-Disposition: attachment; filename=\"ngram.txt\"\n\n");
+}
+else
+{
+	print("Content-Type: text/plain; charset=utf-8\n\n");
+}
 
 ## Executes a command to search n-grams.
 open(CMD, "| $bin_path -d \'$data_dir\' -o \'$order\'"
