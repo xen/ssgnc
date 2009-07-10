@@ -1,47 +1,52 @@
-#summary Google N-gram 検索システム
+#summary Search System for Google N-gram Corpus
 #labels Phase-Requirements,Phase-Design,Featured
 
-= はじめに =
+= Introduction =
 
-大規模 N-gram コーパスの検索を補助するシステムであり，
-Google により作成された日本語と英語のコーパスを想定しています．
+The *ssgnc* is a Search System for Google N-gram Corpus.
+This system has been designed for Japanese and English Google N-gram Corpora,
+however, the *ssgnc* is applicable to other n-gram corpora.
 
-== 機能 ==
+== Overview ==
 
-Google N-gram に対して転置データベース（インデックス）を構築することにより，
-unigram の AND 検索やワイルドカードを用いた検索が可能となります．
+The *ssgnc* builds inverted databases (index) for large-scale n-grams
+and provides interfaces for searching n-grams.
+Users can find n-grams that contain specified unigrams (boolean AND search).
+Also, the *ssgnc* can handle a query with a wildcard *`*`* that
+matches an arbitrary unigram.
+The search methods and examples are as follows:
 
- * 検索方式
-  * AND 検索
-   * 「りんご」と「みかん」が出現する n-gram
-  * 順序付き AND 検索
-   * 「りんご」と「みかん」が順番に出現する n-gram
-  * フレーズ検索
-   * 「りんご」と「みかん」が続けて出現する n-gram
-  * ワイルドカード検索
-   * 「 `* * の よう な * *` 」（'`*`' は任意の unigram）に一致する n-gram
+ * Search methods
+  * Boolean AND search
+   * N-grams that contain both "apple" and "orange".
+  * Ordered boolean AND search
+   * N-grams that contain both "apple" and "orange" in order.
+  * Phrase search
+   * N-grams that contain "apple orange".
+  * Wildcard search
+   * N-grams that matches "`*` similar to `*` `*`".
 
-grep などのコマンドを併用すれば，より詳細な検索も実現できます．
+Other commands such as *grep* will realize more detailed searches.
 
-※ 本システムにより構築されるインデックス自体には，
-任意の unigram を含む n-gram を頻度降順に取り出す程度の能力しかありません．
-
-----
-
-== 動作環境 ==
-
-Linux での利用を想定して開発しており，
-64-bit 版の Ubuntu server で動作確認をしています．
-サイズが 2GB を超える大きなファイルに対して mmap() を使用するため，
-32-bit 版では正常に動作しません．
-
-Mac OSX などの環境で動作するかどうかは未確認です．
+# The indices of this system supports only searches for
+n-grams containing an arbitrary unigram.
 
 ----
 
-== 用意するもの ==
+== System Requirement ==
 
-本システムのビルドには，以下のツールが必要となります．
+The *ssgnc* has been developed for Linux systems and
+I have tested it on a 64-bit Ubuntu server.
+This system does not work well on a 32-bit system,
+because it uses mmap() for large files whose sizes are greater than 2GB files.
+
+I'm not sure whether the *ssgnc* works on Max OSX and other operating systems.
+
+----
+
+== Required Tool and Libraries ==
+
+The *ssgnc* requires the following tools and libraries.
 
  * g++
  * make
@@ -51,59 +56,57 @@ Mac OSX などの環境で動作するかどうかは未確認です．
 
 ----
 
-= 構成 =
+= How to Use =
 
-== インデクサ ==
+== Indexing ==
 
-圧縮された状態の Google N-gram を展開しつつ，インデックスを構築します．
+The *ssgnc* builds indices from compressed Google N-gram Corpus.
 
- ssgnc-build-index.sh 入力ディレクトリ 出力ディレクトリ
+ ssgnc-build-index.sh InputDir OutputDir
 
- * 第一引数：Google N-gram の DVD に含まれるデータを展開したディレクトリ
- * 第二引数：インデックスを配置するディレクトリ
+ * InputDir: specifies a directory *data* copied from DVDs.
+ * OutputDir: specifies a directory to put result indices.
 
- 例）ssgnc-build-index.sh ./data ./index
+ e.g.) ssgnc-build-index.sh ./data ./index
 
-英語版および日本語版の Google N-gram に対してインデックスを構築した場合，
-サイズは以下のようになります．
-作業領域も必要となるため，200GB 以上の空き領域を確保してから
-インデックスを構築するようにしてください．
+The size of indices for English and Japanese
+Google N-gram Corpora are as follows:
 
- * インデックスのサイズ
-  * 英語版 Google N-gram: 123GB 以下（未確認）
-  * 日本語版 Google N-gram: 145GB
+ * Index size
+  * English Google N-gram Corpus: less than 123GB
+  * Japanese Google N-gram Corpus: 145GB
 
-※ 出力されるインデックスには，Google N-gram 自体も含まれます．
+Please confirm that there is more than 200GB disk space,
+because the indexing process requires extra disk space for temporary files.
 
 ----
 
-== 検索コマンド ==
+== Searching ==
 
-インデックスを用いて Google N-gram からの検索をおこないます．
+The *ssgnc* provides a command for searching n-grams by using indices.
 
  ssgnc-search -d DataDir
 
- * DataDir：インデックスのあるディレクトリ
+ * DataDir: specifies a directory of indices.
 
- 例）ssgnc-search -d /home/ssgnc/ja
+ e.g.) ssgnc-search -d /home/ssgnc/ja
 
-その他のオプションについては ssgnc-search -h をご覧ください．
+Please see *ssgnc-search -h* for other options.
 
 ----
 
-== CGI プログラム ==
+== CGI ==
 
-CGI プログラムを生成するスクリプトが利用できます．
+The *ssgnc* has a perl script for generating a simple perl script for CGI.
 
  ssgnc-gen-cgi.pl DataDir > CgiPerl
 
- * DataDir：インデックスのあるディレクトリ
- * CgiPerl：CGI プログラム
+ * DataDir: specifies a directory of indices.
+ * CgiPerl: specifies an output file.
 
- 例）ssgnc-gen-cgi.pl /home/ssgnc/ja > ssgnc-ja.pl
+ e.g.: ssgnc-gen-cgi.pl /home/ssgnc/ja > ssgnc-ja.pl
 
-生成された Perl スクリプトを CGI プログラム用のディレクトリ
-（/usr/lib/cgi-bin あたり）にコピーすれば使えます．
+Please copy a generated perl script into a CGI directory such as
+/usr/lib/cgi-bin.
 
-./html の中に HTML があるので，ご利用ください．
-ただし，必要に応じてパスを修正する必要があります．
+There are sample HTML documents in *./html* for using the above CGI program.
