@@ -73,7 +73,7 @@ The size of indices for English and Japanese
 Google N-gram Corpora are as follows:
 
  * Index size
-  * English Google N-gram Corpus: less than 123GB
+  * English Google N-gram Corpus: 116GB
   * Japanese Google N-gram Corpus: 145GB
 
 Please confirm that there is more than 200GB disk space,

@@ -70,7 +70,7 @@ Mac OSX などの環境で動作するかどうかは未確認です．
 インデックスを構築するようにしてください．
 
  * インデックスのサイズ
-  * 英語版 Google N-gram: 123GB 以下（未確認）
+  * 英語版 Google N-gram: 116GB
   * 日本語版 Google N-gram: 145GB
 
 ※ 出力されるインデックスには，Google N-gram 自体も含まれます．
