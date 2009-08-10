@@ -41,8 +41,8 @@ if ((lc $min_freq) eq "all") { $min_freq = 0; }
 if ((lc $max_results) eq "all") { $max_results = 2147483647; }
 if ((lc $n_range) eq "all") { $n_range = "1-"; }
 
-## Replaces line ends by white spaces.
-$query =~ s/\n/ /g;
+## Divides a query into unigrams.
+$query = Wakati($query);
 
 ## Removes single quotes from parameters.
 $order =~ s/'//g;
@@ -68,4 +68,25 @@ print(CMD "$query");
 close(CMD);
 
 exit;
+
+## Subroutine for query segmentation.
+sub Wakati
+{
+	my $query = $_[0];
+
+	$query =~ s/\n/ /g;
+	$query =~ s/\\/\\\\/g;
+	$query =~ s/'/'\\''/g;
+	open(WAKATI, "echo '$query' | mecab | awk '{print \$1; }' |");
+	my $separated_query;
+	while (my $unigram = <WAKATI>)
+	{
+		chop($unigram);
+		$separated_query .= $unigram . ' ';
+	}
+	close(WAKATI);
+
+	$separated_query =~ s/\s+EOS\s+$//;
+	return $separated_query;
+}
 END_OF_LATTER_PART

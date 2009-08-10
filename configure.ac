@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.63])
-AC_INIT([ssgnc], [0.2.0], [syata@acm.org])
+AC_INIT([ssgnc], [0.2.1], [syata@acm.org])
 AC_CONFIG_SRCDIR([src/build-vocab-dic.cc])
 AM_INIT_AUTOMAKE
 

@@ -2,7 +2,8 @@ SUBDIRS = src test
 
 bin_SCRIPTS = \
 	ssgnc-build-index.sh \
-	ssgnc-gen-cgi.pl
+	ssgnc-gen-cgi.pl \
+	ssgnc-gen-cgi-with-wakati.pl
 
 EXTRA_DIST = \
 	html/ssgnc-en.html \
@@ -10,4 +11,5 @@ EXTRA_DIST = \
 	html/ssgnc-ja.html \
 	html/ssgnc-ja-help.html \
 	ssgnc-build-index.sh \
-	ssgnc-gen-cgi.pl
+	ssgnc-gen-cgi.pl \
+	ssgnc-gen-cgi-with-wakati.pl
