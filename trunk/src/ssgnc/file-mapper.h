@@ -24,7 +24,7 @@ public:
 		Unmap();
 
 		// Gets the file size.
-		struct ::stat st;
+		struct stat st;
 		if (::stat(file_name, &st))
 			return false;
 

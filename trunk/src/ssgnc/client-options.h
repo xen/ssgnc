@@ -54,6 +54,8 @@ public:
 			case 'n':
 				n_range_ = ::optarg;
 				break;
+			default:
+				break;
 			}
 		}
 
@@ -64,7 +66,7 @@ public:
 	}
 
 	// Shows the usage information.
-	static void Usage(std::ostream *output)
+	static void ShowUsage(std::ostream *output)
 	{
 		*output << "Options:\n"
 			"  -h [ --help ]                   display this help and exit\n"
@@ -75,6 +77,7 @@ public:
 			"  -r [ --results ] arg (=20)      maximum number of results\n"
 			"  -f [ --freq ] arg (=0)          minimum frequency\n"
 			"  -n [ --n-range ] arg            range of n (ex. 1-7)\n";
+		*output << std::endl;
 	}
 
 private:
@@ -84,6 +87,10 @@ private:
 	long long results_;
 	long long freq_;
 	std::string n_range_;
+
+	// Disallows copies.
+	ClientOptions(const ClientOptions &);
+	ClientOptions &operator=(const ClientOptions &);
 
 	// Gets a pointer to the list of long options.
 	static const struct ::option *GetLongOptions()

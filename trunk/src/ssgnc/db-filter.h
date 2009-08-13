@@ -5,7 +5,7 @@
 #include "inverted-db.h"
 #include "query.h"
 
-#include <climits>
+#include <limits>
 
 namespace ssgnc {
 
@@ -52,7 +52,7 @@ private:
 	bool FindMinimumReader(const InvertedDb &db, const Query &query)
 	{
 		int min_key_id = 0;
-		std::size_t min_size = static_cast<std::size_t>(ULLONG_MAX);
+		std::size_t min_size = std::numeric_limits<std::size_t>::max();
 		for (int i = 0; i < query.key_id_size(); ++i)
 		{
 			if (query.key_id(i) < 0)
