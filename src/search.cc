@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -33,7 +34,7 @@ bool OpenDb(const ssgnc::ClientOptions &client_options,
 	if (!client_options.n_range().empty())
 	{
 		int min_n = 1;
-		int max_n = INT_MAX - 1;
+		int max_n = std::numeric_limits<int>::max() - 1;
 
 		const std::string &n_range = client_options.n_range();
 		std::string::size_type delim_pos = n_range.find('-');
@@ -105,14 +106,14 @@ int main(int argc, char *argv[])
 	ssgnc::ClientOptions client_options;
 	if (!client_options.Parse(argc, argv))
 	{
-		ssgnc::ClientOptions::Usage(&std::cerr);
+		ssgnc::ClientOptions::ShowUsage(&std::cerr);
 		return 1;
 	}
 
 	// Shows the help and exits.
 	if (client_options.help())
 	{
-		ssgnc::ClientOptions::Usage(&std::cerr);
+		ssgnc::ClientOptions::ShowUsage(&std::cerr);
 		return 0;
 	}
 

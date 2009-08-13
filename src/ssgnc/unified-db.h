@@ -4,7 +4,7 @@
 #include "inverted-db.h"
 #include "path-generator.h"
 
-#include <climits>
+#include <limits>
 #include <vector>
 
 #include <boost/shared_ptr.hpp>
@@ -29,7 +29,7 @@ public:
 
 	// Opens databases in a directory.
 	bool Open(const PathGenerator &path_gen,
-		int min_n = 1, int max_n = INT_MAX - 1)
+		int min_n = 1, int max_n = std::numeric_limits<int>::max())
 	{
 		Clear();
 		for (int i = min_n; i <= max_n; ++i)
