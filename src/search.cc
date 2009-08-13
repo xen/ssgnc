@@ -1,49 +1,22 @@
+#include "ssgnc/client-options.h"
 #include "ssgnc/unified-db.h"
 #include "ssgnc/unified-reader.h"
 #include "ssgnc/vocab-pair.h"
+
+#include <getopt.h>
+#include <unistd.h>
 
 #include <iostream>
 #include <string>
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/program_options.hpp>
 
 namespace {
 
-// Parses command line options.
-bool ParseOptions(int argc, char *argv[],
-	boost::program_options::variables_map *vmap)
-{
-	namespace opts = boost::program_options;
-
-	opts::options_description options("Options");
-	options.add_options()
-		("help,h", "display this help and exit")
-		("dir,d", opts::value<std::string>(), "index directory (required)")
-		("order,o", opts::value<std::string>()->default_value("UNORDERED"),
-			"query order (unordered, ordered, phrase or fixed)")
-		("results,r", opts::value<long long>()->default_value(20),
-			"maximum number of results")
-		("freq,f", opts::value<long long>()->default_value(0),
-			"minimum frequency")
-		("n-range,n", opts::value<std::string>(), "range of n (ex. 1-7)");
-
-	opts::store(opts::parse_command_line(argc, argv, options), *vmap);
-	opts::notify(*vmap);
-
-	if (vmap->count("help") || !vmap->count("dir"))
-	{
-		std::cerr << options << std::endl;
-		return false;
-	}
-
-	return true;
-}
 
 // Opens vocabulary files.
-bool OpenVocab(const boost::program_options::variables_map &vmap,
-	const ssgnc::PathGenerator &path_gen, ssgnc::VocabPair *vocab)
+bool OpenVocab(const ssgnc::PathGenerator &path_gen, ssgnc::VocabPair *vocab)
 {
 	if (!vocab->Open(path_gen))
 	{
@@ -54,15 +27,15 @@ bool OpenVocab(const boost::program_options::variables_map &vmap,
 }
 
 // Opens databases.
-bool OpenDb(const boost::program_options::variables_map &vmap,
+bool OpenDb(const ssgnc::ClientOptions &client_options,
 	const ssgnc::PathGenerator &path_gen, ssgnc::UnifiedDb *db)
 {
-	if (vmap.count("n-range"))
+	if (!client_options.n_range().empty())
 	{
 		int min_n = 1;
 		int max_n = INT_MAX - 1;
 
-		const std::string &n_range = vmap["n-range"].as<std::string>();
+		const std::string &n_range = client_options.n_range();
 		std::string::size_type delim_pos = n_range.find('-');
 
 		if (delim_pos != std::string::npos)
@@ -95,10 +68,10 @@ bool OpenDb(const boost::program_options::variables_map &vmap,
 	return true;
 }
 
-bool InitQuery(const boost::program_options::variables_map &vmap,
+bool InitQuery(const ssgnc::ClientOptions &client_options,
 	ssgnc::Query *query)
 {
-	const std::string &order_name = vmap["order"].as<std::string>();
+	const std::string &order_name = client_options.order();
 	if (boost::istarts_with("UNORDERED", order_name))
 		query->set_order(ssgnc::Query::UNORDERED);
 	else if (boost::istarts_with("ORDERED", order_name))
@@ -113,7 +86,7 @@ bool InitQuery(const boost::program_options::variables_map &vmap,
 		return false;
 	}
 
-	const long long min_freq = vmap["freq"].as<long long>();
+	const long long min_freq = client_options.freq();
 	if (min_freq < 0)
 	{
 		std::cerr << "error: invalid min_freq: " << min_freq << std::endl;
@@ -128,31 +101,41 @@ bool InitQuery(const boost::program_options::variables_map &vmap,
 
 int main(int argc, char *argv[])
 {
-	boost::program_options::variables_map vmap;
-	if (!ParseOptions(argc, argv, &vmap))
+	// Parses program options.
+	ssgnc::ClientOptions client_options;
+	if (!client_options.Parse(argc, argv))
+	{
+		ssgnc::ClientOptions::Usage(&std::cerr);
 		return 1;
+	}
+
+	// Shows the help and exits.
+	if (client_options.help())
+	{
+		ssgnc::ClientOptions::Usage(&std::cerr);
+		return 0;
+	}
 
 	// Paths of vocabulary files and databases.
-	const std::string &dir_name = vmap["dir"].as<std::string>();
 	ssgnc::PathGenerator path_gen;
-	path_gen.set_dir_name(dir_name);
+	path_gen.set_dir_name(client_options.dir());
 
 	// Opens vocabulary files.
 	ssgnc::VocabPair vocab;
-	if (!OpenVocab(vmap, path_gen, &vocab))
+	if (!OpenVocab(path_gen, &vocab))
 		return 1;
 
 	// Opens databases.
 	ssgnc::UnifiedDb db;
-	if (!OpenDb(vmap, path_gen, &db))
+	if (!OpenDb(client_options, path_gen, &db))
 		return 1;
 
 	// Sets shared options of queries.
 	ssgnc::Query query;
-	if (!InitQuery(vmap, &query))
+	if (!InitQuery(client_options, &query))
 		return 1;
 
-	const long long max_results = vmap["results"].as<long long>();
+	const long long max_results = client_options.results();
 	std::string line;
 	while (std::getline(std::cin, line))
 	{

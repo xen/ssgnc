@@ -44,4 +44,5 @@ ssgnc_include_HEADERS = \
 	ssgnc/varint-writer.h \
 	ssgnc/vocab-dic.h \
 	ssgnc/vocab-index.h \
-	ssgnc/vocab-pair.h
+	ssgnc/vocab-pair.h \
+	ssgnc/client-options.h
