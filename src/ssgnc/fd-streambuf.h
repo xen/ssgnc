@@ -1,6 +1,7 @@
 #ifndef SSGNC_FD_STREAMBUF_H
 #define SSGNC_FD_STREAMBUF_H
 
+#include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
 
