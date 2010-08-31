@@ -1,7 +1,7 @@
 #ifndef SSGNC_TOOLS_COMMON_H
 #define SSGNC_TOOLS_COMMON_H
 
-#include <ssgnc.h>
+#include "ssgnc.h"
 
 #include <cstdlib>
 #include <string>

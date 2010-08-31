@@ -48,11 +48,10 @@ public:
 	bool is_open() const { return is_open_; }
 
 	bool bad() const { return bad_; }
-	bool eof() const;
+	bool eof() const { return heap_queue_.empty(); }
 	bool good() const { return !fail(); }
-	bool fail() const { return bad() || eof(); }
+	bool fail() const;
 
-	UInt64 num_results() const { return num_results_; }
 	UInt64 tell() const { return total_; }
 
 	const Query &query() const { return query_; }
@@ -63,7 +62,6 @@ private:
 	Query query_;
 	std::vector<NgramReader *> ngram_readers_;
 	HeapQueue<NgramReader *, FreqComparer> heap_queue_;
-	UInt64 num_results_;
 	UInt64 total_;
 
 	bool filter(const std::vector<Int32> &tokens) const;
@@ -80,24 +78,19 @@ private:
 inline bool Agent::FreqComparer::operator()(const NgramReader *lhs,
 	const NgramReader *rhs) const
 {
-	if (lhs->encoded_freq() != rhs->encoded_freq())
-		return lhs->encoded_freq() > rhs->encoded_freq();
+	if (lhs->freq() != rhs->freq())
+		return lhs->freq() > rhs->freq();
 	return lhs->num_tokens() < rhs->num_tokens();
 }
 
-inline bool Agent::eof() const
+inline bool Agent::fail() const
 {
-	if (heap_queue_.empty())
+	if (bad() || eof())
 		return true;
 
-	if (query_.max_num_results() != 0 &&
-		num_results_ >= query_.max_num_results())
-		return true;
-
-	if (query_.io_limit() != 0 && total_ >= query_.io_limit())
-		return true;
-
-	return false;
+	if (query_.io_limit() == 0)
+		return false;
+	return total_ >= query_.io_limit();
 }
 
 }  // namespace ssgnc

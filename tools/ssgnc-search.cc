@@ -8,7 +8,7 @@ void searchQueries(std::istream *in, const ssgnc::Database &database,
 	ssgnc::Int16 encoded_freq;
 	std::vector<ssgnc::Int32> tokens;
 
-	ssgnc::StringBuilder ngram_str;
+	ssgnc::StringBuilder ngram;
 
 	std::string line;
 	while (ssgnc::tools::readLine(in, &line))
@@ -17,31 +17,28 @@ void searchQueries(std::istream *in, const ssgnc::Database &database,
 		if (!database.parseQuery(query_str, query))
 		{
 			SSGNC_ERROR << "ssgnc::Database::parseQuery() failed" << std::endl;
-			continue;
+			return;
 		}
 
 		ssgnc::Agent agent;
 		if (!database.search(*query, &agent))
 		{
 			SSGNC_ERROR << "ssgnc::Database::search() failed" << std::endl;
-			continue;
+			return;
 		}
 
+		ssgnc::Int32 count = 0;
 		while (agent.read(&encoded_freq, &tokens))
 		{
-			if (!database.decode(encoded_freq, tokens, &ngram_str))
+			if (!database.decode(encoded_freq, tokens, &ngram))
 			{
 				SSGNC_ERROR << "ssgnc::Database::decode() failed" << std::endl;
 				return;
 			}
 
-			std::cout << ngram_str << '\n';
-			if (!std::cout)
-			{
-				SSGNC_ERROR << "std::ostream::operator<<() failed"
-					<< std::endl;
-				return;
-			}
+			std::cout << ++count << ". " << ngram << '\n';
+			if (count >= 10)
+				break;
 		}
 
 		if (agent.bad())
@@ -49,17 +46,7 @@ void searchQueries(std::istream *in, const ssgnc::Database &database,
 			SSGNC_ERROR << "ssgnc::Agent::read() failed" << std::endl;
 			return;
 		}
-
-		std::cout << '\n';
-		if (!std::cout)
-		{
-			SSGNC_ERROR << "std::ostream::operator<<() failed" << std::endl;
-			return;
-		}
 	}
-
-	if (in->bad())
-		SSGNC_ERROR << "ssgnc::tools::readLine() failed" << std::endl;
 }
 
 }  // namespace
@@ -75,9 +62,6 @@ int main(int argc, char *argv[])
 	}
 
 	ssgnc::Query query;
-	query.set_max_num_results(10);
-	query.set_io_limit(1 << 20);
-
 	if (!query.parseOptions(&argc, argv))
 		return 2;
 

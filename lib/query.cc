@@ -2,19 +2,12 @@
 
 namespace ssgnc {
 
-Query::Query() : tokens_(), min_freq_(MIN_FREQ),
-	min_encoded_freq_(MIN_ENCODED_FREQ), min_num_tokens_(0),
-	max_num_tokens_(0), max_num_results_(0), io_limit_(0),
-	order_(DEFAULT_ORDER), freq_handler_() {}
-
 void Query::clear()
 {
 	tokens_.clear();
-	min_freq_ = MIN_FREQ;
-	min_encoded_freq_ = MIN_ENCODED_FREQ;
+	min_freq_ = 1;
 	min_num_tokens_ = 0;
 	max_num_tokens_ = 0;
-	max_num_results_ = 0;
 	io_limit_ = 0;
 	order_ = DEFAULT_ORDER;
 }
@@ -38,10 +31,8 @@ bool Query::clone(Query *dest) const
 	}
 
 	dest->min_freq_ = min_freq_;
-	dest->min_encoded_freq_ = min_encoded_freq_;
 	dest->min_num_tokens_ = min_num_tokens_;
 	dest->max_num_tokens_ = max_num_tokens_;
-	dest->max_num_results_ = max_num_results_;
 	dest->io_limit_ = io_limit_;
 	dest->order_ = order_;
 
@@ -50,8 +41,7 @@ bool Query::clone(Query *dest) const
 
 bool Query::appendToken(Int64 value)
 {
-	if (value != META_TOKEN && value != UNKNOWN_TOKEN &&
-		(value < MIN_TOKEN || value > MAX_TOKEN))
+	if (value != META_TOKEN && (value < MIN_TOKEN || value > MAX_TOKEN))
 	{
 		SSGNC_ERROR << "Out of range token ID: " << value << std::endl;
 		return false;
@@ -59,7 +49,7 @@ bool Query::appendToken(Int64 value)
 
 	try
 	{
-		tokens_.push_back(static_cast<Int32>(value));
+		tokens_.push_back(value);
 	}
 	catch (...)
 	{
@@ -78,40 +68,14 @@ bool Query::set_min_freq(Int64 value)
 		return false;
 	}
 
-	Int16 encoded_freq;
-	if (!freq_handler_.encode(value, &encoded_freq))
+	Int16 freq;
+	if (!FreqHandler().encode(value, &freq))
 	{
 		SSGNC_ERROR << "ssgnc::FreqHandler::encode() failed: "
 			<< value << std::endl;
 		return false;
 	}
-
-	if (!set_min_encoded_freq(encoded_freq))
-	{
-		SSGNC_ERROR << "ssgnc::Query::set_min_encoded_freq() failed: "
-			<< encoded_freq << std::endl;
-		return false;
-	}
-	return true;
-}
-
-bool Query::set_min_encoded_freq(Int64 value)
-{
-	if (value < MIN_ENCODED_FREQ && value > MIN_ENCODED_FREQ)
-	{
-		SSGNC_ERROR << "Out of range encoded freq: " << value << std::endl;
-		return false;
-	}
-
-	Int64 freq;
-	if (!freq_handler_.decode(static_cast<Int16>(value), &freq))
-	{
-		SSGNC_ERROR << "ssgnc::FreqHandler::decode() failed: "
-			<< value << std::endl;
-		return false;
-	}
 	min_freq_ = freq;
-	min_encoded_freq_ = static_cast<Int16>(value);
 	return true;
 }
 
@@ -123,7 +87,7 @@ bool Query::set_min_num_tokens(Int64 value)
 		return false;
 	}
 
-	min_num_tokens_ = static_cast<Int32>(value);
+	min_num_tokens_ = value;
 	return true;
 }
 
@@ -135,19 +99,7 @@ bool Query::set_max_num_tokens(Int64 value)
 		return false;
 	}
 
-	max_num_tokens_ = static_cast<Int32>(value);
-	return true;
-}
-
-bool Query::set_max_num_results(Int64 value)
-{
-	if (value < MIN_NUM_RESULTS || value > MAX_NUM_RESULTS)
-	{
-		SSGNC_ERROR << "Out of range #results: " << value << std::endl;
-		return false;
-	}
-
-	max_num_results_ = static_cast<UInt64>(value);
+	max_num_tokens_ = value;
 	return true;
 }
 
@@ -159,7 +111,7 @@ bool Query::set_io_limit(Int64 value)
 		return false;
 	}
 
-	io_limit_ = static_cast<UInt64>(value);
+	io_limit_ = value;
 	return true;
 }
 
@@ -235,15 +187,15 @@ bool Query::parseOptions(Int32 *argc, Int8 *argv[])
 	return is_ok;
 }
 
-bool Query::parseQueryString(const String &str, MemPool *mem_pool,
-	std::vector<std::pair<String, String> > *pairs)
+bool Query::parseQueryString(const String &str, StringBuilder *query)
 {
-	if ((mem_pool == NULL && pairs != NULL) ||
-		(mem_pool != NULL && pairs == NULL))
+	if (query == NULL)
 	{
-		SSGNC_ERROR << "Inconsistent pointers" << std::endl;
+		SSGNC_ERROR << "Null pointer" << std::endl;
 		return false;
 	}
+
+	query->clear();
 
 	StringBuilder key, value;
 
@@ -267,54 +219,38 @@ bool Query::parseQueryString(const String &str, MemPool *mem_pool,
 			SSGNC_ERROR << "No value: " << param << std::endl;
 			return false;
 		}
+		else
+		{
+			if (!percentDecode(param.substr(0, delim_pos), &key))
+			{
+				SSGNC_ERROR << "ssgnc::Query::percentDecode() failed: "
+					<< param.substr(0, delim_pos) << std::endl;
+				return false;
+			}
 
-		if (!percentDecode(param.substr(0, delim_pos), &key))
-		{
-			SSGNC_ERROR << "ssgnc::Query::percentDecode() failed: "
-				<< param.substr(0, delim_pos) << std::endl;
-			return false;
-		}
-		else if (!percentDecode(param.substr(delim_pos + 1), &value))
-		{
-			SSGNC_ERROR << "ssgnc::Query::percentDecode() failed: "
-				<< param.substr(delim_pos + 1) << std::endl;
-			return false;
-		}
+			if (!percentDecode(param.substr(delim_pos + 1), &value))
+			{
+				SSGNC_ERROR << "ssgnc::Query::percentDecode() failed: "
+					<< param.substr(delim_pos + 1) << std::endl;
+				return false;
+			}
 
-		if (key.str() == "f" || key.str() == "t" || key.str() == "r" ||
-			key.str() == "i" || key.str() == "o")
-		{
-			if (!parseKeyValue(key.str(), value.str()))
+			if (key.str() == "q")
+			{
+				query->clear();
+				if (!query->append(value.str()))
+				{
+					SSGNC_ERROR << "ssgnc::StringBuilder::append() failed"
+						<< value << std::endl;
+					return false;
+				}
+			}
+			else if (!parseKeyValue(key.str(), value.str()))
 			{
 				SSGNC_ERROR << "ssgnc::Query::parseKeyValue() failed: "
 					<< key << ", " << value << std::endl;
 				return false;
 			}
-			continue;
-		}
-
-		if (mem_pool == NULL)
-			continue;
-
-		String key_copy, value_copy;
-		if (!mem_pool->append(key.str(), &key_copy) ||
-			!mem_pool->append(value.str(), &value_copy))
-		{
-			SSGNC_ERROR << "ssgnc::MemPool::append() failed"
-				<< std::endl;
-			return false;
-		}
-
-		try
-		{
-			pairs->push_back(std::make_pair(key_copy, value_copy));
-		}
-		catch (...)
-		{
-			SSGNC_ERROR << "std::vector<std::pair<ssgnc::String, "
-				"ssgnc::String> >::push_back() failed: "
-				<< pairs->size() << std::endl;
-			return false;
 		}
 	}
 	return true;
@@ -326,8 +262,6 @@ bool Query::parseKeyValue(const String &key, const String &value)
 	static const String NUM_TOKENS_OPTION_KEY = "--ssgnc-num-tokens";
 	static const String MIN_NUM_TOKENS_OPTION_KEY = "--ssgnc-min-num-tokens";
 	static const String MAX_NUM_TOKENS_OPTION_KEY = "--ssgnc-max-num-tokens";
-	static const String MAX_NUM_RESULTS_OPTION_KEY =
-		"--ssgnc-max-num-results";
 	static const String IO_LIMIT_OPTION_KEY = "--ssgnc-io-limit";
 	static const String ORDER_OPTION_KEY = "--ssgnc-order";
 
@@ -367,15 +301,6 @@ bool Query::parseKeyValue(const String &key, const String &value)
 			return false;
 		}
 	}
-	else if (key == "r" || key == MAX_NUM_RESULTS_OPTION_KEY)
-	{
-		if (!parseMaxNumResults(value))
-		{
-			SSGNC_ERROR << "ssgnc::Query::parseMaxNumResults() failed: "
-				<< value << std::endl;
-			return false;
-		}
-	}
 	else if (key == "i" || key == IO_LIMIT_OPTION_KEY)
 	{
 		if (!parseIOLimit(value))
@@ -400,6 +325,13 @@ bool Query::parseKeyValue(const String &key, const String &value)
 
 bool Query::parseMinFreq(const String &str)
 {
+	static const FreqHandler freq_handler;
+
+	if (str == NULL)
+	{
+		SSGNC_ERROR << "Null pointer" << std::endl;
+		return false;
+	}
 
 	Int64 value;
 	if (!parseInt(str, &value))
@@ -417,6 +349,12 @@ bool Query::parseMinFreq(const String &str)
 
 bool Query::parseNumTokens(const String &str)
 {
+	if (str == NULL)
+	{
+		SSGNC_ERROR << "Null pointer" << std::endl;
+		return false;
+	}
+
 	String min_str;
 	String max_str;
 
@@ -465,6 +403,12 @@ bool Query::parseNumTokens(const String &str)
 
 bool Query::parseMinNumTokens(const String &str)
 {
+	if (str == NULL)
+	{
+		SSGNC_ERROR << "Null pointer" << std::endl;
+		return false;
+	}
+
 	Int64 value;
 	if (!parseInt(str, &value))
 	{
@@ -482,6 +426,12 @@ bool Query::parseMinNumTokens(const String &str)
 
 bool Query::parseMaxNumTokens(const String &str)
 {
+	if (str == NULL)
+	{
+		SSGNC_ERROR << "Null pointer" << std::endl;
+		return false;
+	}
+
 	Int64 value;
 	if (!parseInt(str, &value))
 	{
@@ -497,25 +447,14 @@ bool Query::parseMaxNumTokens(const String &str)
 	return true;
 }
 
-bool Query::parseMaxNumResults(const String &str)
-{
-	Int64 value;
-	if (!parseInt(str, &value))
-	{
-		SSGNC_ERROR << "ssgnc::Query::parseInt() failed: " << str << std::endl;
-		return false;
-	}
-	else if (!set_max_num_results(value))
-	{
-		SSGNC_ERROR << "ssgnc::Query::set_max_num_results: "
-			<< value << std::endl;
-		return false;
-	}
-	return true;
-}
-
 bool Query::parseIOLimit(const String &str)
 {
+	if (str == NULL)
+	{
+		SSGNC_ERROR << "Null pointer" << std::endl;
+		return false;
+	}
+
 	Int64 value;
 	if (!parseInt(str, &value))
 	{
@@ -556,18 +495,17 @@ bool Query::parseOrder(const String &str)
 
 bool Query::showOptions(std::ostream *out)
 {
+	if (out == NULL)
+	{
+		SSGNC_ERROR << "Null pointer" << std::endl;
+		return false;
+	}
 	static const String MIN_FREQ_OPTION_KEY = "--ssgnc-min-freq";
 	static const String NUM_TOKENS_OPTION_KEY = "--ssgnc-num-tokens";
 	static const String MIN_NUM_TOKENS_OPTION_KEY = "--ssgnc-min-num-tokens";
 	static const String MAX_NUM_TOKENS_OPTION_KEY = "--ssgnc-max-num-tokens";
 	static const String IO_LIMIT_OPTION_KEY = "--ssgnc-io-limit";
 	static const String ORDER_OPTION_KEY = "--ssgnc-order";
-
-	if (out == NULL)
-	{
-		SSGNC_ERROR << "Null pointer" << std::endl;
-		return false;
-	}
 
 	*out << "Options:\n"
 		<< "  --ssgnc-min-freq="
@@ -579,18 +517,10 @@ bool Query::showOptions(std::ostream *out)
 		<< '[' << MIN_NUM_TOKENS << '-' << MAX_NUM_TOKENS << "]\n"
 		<< "  --ssgnc-max-num-tokens="
 		<< '[' << MIN_NUM_TOKENS << '-' << MAX_NUM_TOKENS << "]\n"
-		<< "  --ssgnc-max-num-results="
-		<< '[' << MIN_NUM_RESULTS << '-' << MAX_NUM_RESULTS << "]\n"
 		<< "  --ssgnc-io-limit="
 		<< '[' << MIN_IO_LIMIT << '-' << MAX_IO_LIMIT << "]\n"
 		<< "  --ssgnc-order="
 		<< "[UNORDERED, ORDERED, PHRASE, FIXED]\n";
-	if (!*out)
-	{
-		SSGNC_ERROR << "std::ostream::operator<<() failed" << std::endl;
-		return false;
-	}
-
 	return true;
 }
 

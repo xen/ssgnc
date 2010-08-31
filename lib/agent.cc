@@ -2,8 +2,8 @@
 
 namespace ssgnc {
 
-Agent::Agent() : is_open_(false), bad_(false), query_(),
-	ngram_readers_(), heap_queue_(), num_results_(0), total_(0) {}
+Agent::Agent() : is_open_(false), bad_(false),
+	query_(), ngram_readers_(), heap_queue_(), total_(0) {}
 
 Agent::~Agent()
 {
@@ -44,7 +44,7 @@ bool Agent::open(const String &index_dir, const Query &query,
 		}
 
 		if (!ngram_readers_[i]->open(index_dir, sources[i].num_tokens(),
-			sources[i].entry(), query.min_encoded_freq()))
+			sources[i].entry(), query.min_freq()))
 		{
 			SSGNC_ERROR << "ssgnc::NgramReader::open() failed" << std::endl;
 			close();
@@ -78,7 +78,6 @@ bool Agent::close()
 	query_.clear();
 	ngram_readers_.clear();
 	heap_queue_.clear();
-	num_results_ = 0;
 	total_ = 0;
 
 	return true;
@@ -104,10 +103,7 @@ bool Agent::read(Int16 *encoded_freq, std::vector<Int32> *tokens)
 		{
 			heap_queue_.popPush(ngram_reader);
 			if (filter(*tokens))
-			{
-				++num_results_;
 				return true;
-			}
 		}
 		else if (ngram_reader->bad())
 		{
@@ -145,8 +141,13 @@ bool Agent::filterUnordered(const std::vector<Int32> &tokens) const
 	UInt32 mask = 0;
 	for (Int32 i = 0; i < query_.num_tokens(); ++i)
 	{
-		Int32 token = query_.token(i);
-		if (token == Query::META_TOKEN)
+		Int32 token;
+		if (!query_.token(i, &token))
+		{
+			SSGNC_ERROR << "ssgnc::Query::token() failed" << std::endl;
+			return false;
+		}
+		else if (token == Query::META_TOKEN)
 			continue;
 
 		std::size_t j;
@@ -171,7 +172,12 @@ bool Agent::filterOrdered(const std::vector<Int32> &tokens) const
 {
 	for (Int32 i = 0, j = 0; i < query_.num_tokens(); ++i, ++j)
 	{
-		Int32 token = query_.token(i);
+		Int32 token;
+		if (!query_.token(i, &token))
+		{
+			SSGNC_ERROR << "ssgnc::Query::token() failed" << std::endl;
+			return false;
+		}
 		while (j < static_cast<Int32>(tokens.size()))
 		{
 			if (token == Query::META_TOKEN || token == tokens[j])
@@ -189,15 +195,18 @@ bool Agent::filterPhrase(const std::vector<Int32> &tokens) const
 	Int32 max_i = static_cast<Int32>(tokens.size()) - query_.num_tokens();
 	for (Int32 i = 0; i <= max_i; ++i)
 	{
-		Int32 j;
-		for (j = 0; j < query_.num_tokens(); ++j)
+		Int32 j = 0;
+		while (j < query_.num_tokens())
 		{
-			Int32 token = query_.token(j);
-			if (token == Query::META_TOKEN)
-				continue;
-
-			if (token != tokens[i + j])
+			Int32 token;
+			if (!query_.token(j, &token))
+			{
+				SSGNC_ERROR << "ssgnc::Query::token() failed" << std::endl;
+				return false;
+			}
+			else if (token != Query::META_TOKEN && token != tokens[i + j])
 				break;
+			++j;
 		}
 		if (j == query_.num_tokens())
 			return true;
@@ -211,11 +220,13 @@ bool Agent::filterFixed(const std::vector<Int32> &tokens) const
 		return false;
 	for (Int32 i = 0; i < query_.num_tokens(); ++i)
 	{
-		Int32 token = query_.token(i);
-		if (token == Query::META_TOKEN)
-			continue;
-
-		if (token != tokens[i])
+		Int32 token;
+		if (!query_.token(i, &token))
+		{
+			SSGNC_ERROR << "ssgnc::Query::token() failed" << std::endl;
+			return false;
+		}
+		else if (token != Query::META_TOKEN && token != tokens[i])
 			return false;
 	}
 	return true;

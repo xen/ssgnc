@@ -1,1 +1,1 @@
-SUBDIRS = lib tools cgi tests
+SUBDIRS = lib tools tests

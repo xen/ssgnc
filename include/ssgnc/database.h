@@ -19,7 +19,8 @@ public:
 	bool parseQuery(const String &str, Query *query,
 		const String &meta_token = "*") const SSGNC_WARN_UNUSED_RESULT;
 
-	bool search(const Query &query, Agent *agent) const;
+	bool search(const Query &query, Agent *agent) const
+		SSGNC_WARN_UNUSED_RESULT;
 
 	bool decode(Int16 encoded_freq, const std::vector<Int32> &tokens,
 		StringBuilder *ngram) const SSGNC_WARN_UNUSED_RESULT;

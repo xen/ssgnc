@@ -56,14 +56,14 @@ bool ByteReader::close()
 	return true;
 }
 
-bool ByteReader::readEncodedFreq(Int16 *encoded_freq)
+bool ByteReader::readFreq(Int16 *freq)
 {
 	if (!is_open())
 	{
 		SSGNC_ERROR << "Not opened" << std::endl;
 		return false;
 	}
-	else if (encoded_freq == NULL)
+	else if (freq == NULL)
 	{
 		SSGNC_ERROR << "Null pointer" << std::endl;
 		return false;
@@ -86,7 +86,7 @@ bool ByteReader::readEncodedFreq(Int16 *encoded_freq)
 		value = (value << 7) + (byte & 0x7F);
 		if (static_cast<UInt8>(byte) < 0x80)
 		{
-			*encoded_freq = value;
+			*freq = value;
 			return true;
 		}
 	}

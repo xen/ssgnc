@@ -10,17 +10,16 @@ NgramReader::~NgramReader()
 }
 
 bool NgramReader::open(const String &index_dir, Int32 num_tokens,
-	const NgramIndex::Entry &entry, Int16 min_encoded_freq)
+	const NgramIndex::Entry &entry, Int16 min_freq)
 {
 	if (is_open())
 	{
 		SSGNC_ERROR << "Already opened" << std::endl;
 		return false;
 	}
-	else if (min_encoded_freq <= 0)
+	else if (min_freq <= 0)
 	{
-		SSGNC_ERROR << "Invalid encoded freq: "
-			<< min_encoded_freq << std::endl;
+		SSGNC_ERROR << "Invalid minimum freq: " << min_freq << std::endl;
 		return false;
 	}
 
@@ -61,16 +60,15 @@ bool NgramReader::open(const String &index_dir, Int32 num_tokens,
 		return false;
 	}
 
-	if (!readEncodedFreq())
+	if (!readFreq())
 	{
-		SSGNC_ERROR << "ssgnc::NgramReader::readEncodedFreq() failed: "
-			<< std::endl;
+		SSGNC_ERROR << "ssgnc::NgramReader::readFreq() failed: " << std::endl;
 		close();
 		return false;
 	}
 
 	num_tokens_ = num_tokens;
-	min_encoded_freq_ = min_encoded_freq;
+	min_freq_ = min_freq;
 
 	return true;
 }
@@ -89,20 +87,20 @@ bool NgramReader::close()
 		file_.close();
 	if (byte_reader_.is_open())
 		byte_reader_.close();
-	min_encoded_freq_ = 1;
-	encoded_freq_ = -1;
+	min_freq_ = 1;
+	freq_ = -1;
 	total_ = 0;
 	return true;
 }
 
-bool NgramReader::read(Int16 *encoded_freq, std::vector<Int32> *tokens)
+bool NgramReader::read(Int16 *freq, std::vector<Int32> *tokens)
 {
 	if (!is_open())
 	{
 		SSGNC_ERROR << "Not opened" << std::endl;
 		return false;
 	}
-	else if (encoded_freq == NULL)
+	else if (freq == NULL)
 	{
 		SSGNC_ERROR << "Null pointer" << std::endl;
 		return false;
@@ -113,7 +111,7 @@ bool NgramReader::read(Int16 *encoded_freq, std::vector<Int32> *tokens)
 		return false;
 	}
 
-	*encoded_freq = encoded_freq_;
+	*freq = freq_;
 	tokens->clear();
 
 	if (fail())
@@ -125,11 +123,11 @@ bool NgramReader::read(Int16 *encoded_freq, std::vector<Int32> *tokens)
 		return false;
 	}
 
-	if (!readEncodedFreq())
+	if (!readFreq())
 	{
-		if (encoded_freq_ < 0)
+		if (freq_ < 0)
 		{
-			SSGNC_ERROR << "ssgnc::NgramReader::readEncodedFreq() failed"
+			SSGNC_ERROR << "ssgnc::NgramReader::readFreq() failed"
 				<< std::endl;
 			return false;
 		}
@@ -141,10 +139,10 @@ bool NgramReader::read(Int16 *encoded_freq, std::vector<Int32> *tokens)
 			return false;
 		}
 
-		if (!readEncodedFreq())
+		if (!readFreq())
 		{
-			encoded_freq_ = -1;
-			SSGNC_ERROR << "ssgnc::NgramReader::readEncodedFreq() failed"
+			freq_ = -1;
+			SSGNC_ERROR << "ssgnc::NgramReader::readFreq() failed"
 				<< std::endl;
 			return false;
 		}
@@ -158,7 +156,7 @@ bool NgramReader::openNextFile()
 	StringBuilder path;
 	if (!file_path_.read(&path))
 	{
-		encoded_freq_ = -1;
+		freq_ = -1;
 		SSGNC_ERROR << "ssgnc::FilePath::read() failed" << std::endl;
 		return false;
 	}
@@ -168,7 +166,7 @@ bool NgramReader::openNextFile()
 	file_.open(path.ptr(), std::ios::binary);
 	if (!file_)
 	{
-		encoded_freq_ = -1;
+		freq_ = -1;
 		SSGNC_ERROR << "std::ifstream::open() failed: "
 			<< path.str() << std::endl;
 		return false;
@@ -181,7 +179,7 @@ bool NgramReader::openNextFile()
 	}
 	if (!byte_reader_.open(&file_, BYTE_READER_BUF_SIZE))
 	{
-		encoded_freq_ = -1;
+		freq_ = -1;
 		SSGNC_ERROR << "ssgnc::ByteReader::open() failed" << std::endl;
 		return false;
 	}
@@ -189,15 +187,14 @@ bool NgramReader::openNextFile()
 	return true;
 }
 
-bool NgramReader::readEncodedFreq()
+bool NgramReader::readFreq()
 {
-	if (!byte_reader_.readEncodedFreq(&encoded_freq_))
+	if (!byte_reader_.readFreq(&freq_))
 	{
 		if (byte_reader_.bad())
 		{
-			encoded_freq_ = -1;
-			SSGNC_ERROR << "ssgnc::ByteReader::readEncodedFreq() failed"
-				<< std::endl;
+			freq_ = -1;
+			SSGNC_ERROR << "ssgnc::ByteReader::readFreq() failed" << std::endl;
 		}
 		return false;
 	}
@@ -221,7 +218,7 @@ bool NgramReader::readTokens(std::vector<Int32> *tokens)
 	{
 		if (!byte_reader_.readToken(&(*tokens)[i]))
 		{
-			encoded_freq_ = -1;
+			freq_ = -1;
 			SSGNC_ERROR << "ssgnc::ByteReader::readToken() failed"
 				<< std::endl;
 			return false;

@@ -18,7 +18,7 @@ public:
 
 	bool read(Int8 *byte) SSGNC_WARN_UNUSED_RESULT;
 
-	bool readEncodedFreq(Int16 *encoded_freq) SSGNC_WARN_UNUSED_RESULT;
+	bool readFreq(Int16 *freq) SSGNC_WARN_UNUSED_RESULT;
 	bool readFreq(StringBuilder *buf, Int16 *freq) SSGNC_WARN_UNUSED_RESULT;
 
 	bool readToken(Int32 *token) SSGNC_WARN_UNUSED_RESULT;

@@ -206,7 +206,7 @@ libssgnc_a_SOURCES = \
 include_HEADERS = \
 	../include/ssgnc.h
 
-libssgnc_a_includedir = $(includedir)/ssgnc
+libssgnc_a_includedir = $(includedir)/wc
 libssgnc_a_include_HEADERS = \
 	../include/ssgnc/agent.h \
 	../include/ssgnc/byte-reader.h \

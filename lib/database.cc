@@ -113,7 +113,11 @@ bool Database::parseQuery(const String &str, Query *query,
 		if (token == meta_token)
 			token_id = Query::META_TOKEN;
 		else if (!vocab_dic_.find(token, &token_id))
-			token_id = Query::UNKNOWN_TOKEN;
+		{
+			SSGNC_ERROR << "ssgnc::VocabDic::find() failed: "
+				<< token << std::endl;
+			return false;
+		}
 
 		if (!query->appendToken(token_id))
 		{
@@ -153,27 +157,18 @@ bool Database::search(const Query &query, Agent *agent) const
 		max_num_tokens = query.num_tokens();
 
 	std::vector<Agent::Source> sources;
-
-	for (Int32 i = 0; i < query.num_tokens(); ++i)
-	{
-		if (query.token(i) == Query::UNKNOWN_TOKEN)
-		{
-			if (!agent->open(index_dir_.str(), query, sources))
-			{
-				SSGNC_ERROR << "ssgnc::Agent::open() failed" << std::endl;
-				return false;
-			}
-			return true;
-		}
-	}
-
 	for (Int32 i = min_num_tokens; i <= max_num_tokens; ++i)
 	{
 		NgramIndex::Entry min_entry;
 		for (Int32 j = 0; j < query.num_tokens(); ++j)
 		{
-			Int32 token = query.token(j);
-			if (token == Query::META_TOKEN)
+			Int32 token;
+			if (!query.token(j, &token))
+			{
+				SSGNC_ERROR << "ssgnc::Query::token() failed" << std::endl;
+				return false;
+			}
+			else if (token == Query::META_TOKEN)
 				continue;
 
 			NgramIndex::Entry entry;
