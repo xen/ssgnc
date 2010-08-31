@@ -35,7 +35,7 @@ StringBuilder token_buf;
 
 void setupQuery()
 {
-	static const Int64 DEFAULT_MIN_FREQ = 1LL;
+	static const Int64 DEFAULT_MIN_FREQ = 10LL;
 	static const Int64 DEFAULT_MAX_NUM_RESULTS = 100LL;
 	static const Int64 DEFAULT_IO_LIMIT = 256LL << 10;
 

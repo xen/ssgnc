@@ -44,7 +44,7 @@ bool Agent::open(const String &index_dir, const Query &query,
 		}
 
 		if (!ngram_readers_[i]->open(index_dir, sources[i].num_tokens(),
-			sources[i].entry(), query.min_encoded_freq()))
+			sources[i].entry(), query.min_freq()))
 		{
 			SSGNC_ERROR << "ssgnc::NgramReader::open() failed" << std::endl;
 			close();

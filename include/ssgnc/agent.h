@@ -80,8 +80,8 @@ private:
 inline bool Agent::FreqComparer::operator()(const NgramReader *lhs,
 	const NgramReader *rhs) const
 {
-	if (lhs->encoded_freq() != rhs->encoded_freq())
-		return lhs->encoded_freq() > rhs->encoded_freq();
+	if (lhs->freq() != rhs->freq())
+		return lhs->freq() > rhs->freq();
 	return lhs->num_tokens() < rhs->num_tokens();
 }
 

@@ -28,7 +28,6 @@ int main()
 	assert(query.token(0) == ssgnc::Query::MIN_TOKEN);
 
 	assert(query.min_freq() == ssgnc::Query::MIN_FREQ);
-	assert(query.min_encoded_freq() == ssgnc::Query::MIN_ENCODED_FREQ);
 	assert(query.min_num_tokens() == ssgnc::Query::MIN_NUM_TOKENS);
 	assert(query.max_num_tokens() == ssgnc::Query::MIN_NUM_TOKENS);
 	assert(query.max_num_results() ==
@@ -50,8 +49,7 @@ int main()
 	assert(query.token(0) == ssgnc::Query::MIN_TOKEN);
 	assert(query.token(1) == ssgnc::Query::MAX_TOKEN);
 
-	assert(query.min_freq() == ssgnc::Query::MAX_FREQ);
-	assert(query.min_encoded_freq() == ssgnc::Query::MAX_ENCODED_FREQ);
+	assert(query.min_freq() == ssgnc::FreqHandler::MAX_ENCODED_FREQ);
 	assert(query.min_num_tokens() == ssgnc::Query::MAX_NUM_TOKENS);
 	assert(query.max_num_tokens() == ssgnc::Query::MAX_NUM_TOKENS);
 	assert(query.max_num_results() ==
@@ -83,7 +81,6 @@ int main()
 	assert(query.parseOrder("PHRASE"));
 
 	assert(query.min_freq() == ssgnc::Query::MIN_FREQ);
-	assert(query.min_encoded_freq() == ssgnc::Query::MIN_ENCODED_FREQ);
 	assert(query.min_num_tokens() == ssgnc::Query::MIN_NUM_TOKENS);
 	assert(query.max_num_tokens() == ssgnc::Query::MIN_NUM_TOKENS);
 	assert(query.max_num_results() ==
@@ -109,8 +106,7 @@ int main()
 	assert(query.parseIOLimit(stream.str().c_str()));
 	assert(query.parseOrder("Fix"));
 
-	assert(query.min_freq() == ssgnc::Query::MAX_FREQ);
-	assert(query.min_encoded_freq() == ssgnc::Query::MAX_ENCODED_FREQ);
+	assert(query.min_freq() == ssgnc::FreqHandler::MAX_ENCODED_FREQ);
 	assert(query.min_num_tokens() == ssgnc::Query::MAX_NUM_TOKENS);
 	assert(query.max_num_tokens() == ssgnc::Query::MAX_NUM_TOKENS);
 	assert(query.max_num_results() == 
@@ -164,8 +160,7 @@ int main()
 	assert(ssgnc::String(argv[2]) == "argv[2]");
 	assert(ssgnc::String(argv[3]) == "argv[3]");
 
-	assert(query.min_freq() == 12300);
-	assert(query.min_encoded_freq() == (2 << 10) + 123);
+	assert(query.min_freq() == (2 << 10) + 123);
 	assert(query.min_num_tokens() == 2);
 	assert(query.max_num_tokens() == 5);
 	assert(query.max_num_results() == 100);
@@ -181,7 +176,6 @@ int main()
 		"&o=p"));
 
 	assert(query.min_freq() == 100);
-	assert(query.min_encoded_freq() == 100);
 	assert(query.min_num_tokens() == 1);
 	assert(query.max_num_tokens() == 3);
 	assert(query.max_num_results() == 200);

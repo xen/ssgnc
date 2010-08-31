@@ -29,7 +29,6 @@ public:
 	void clearTokens() { tokens_.clear(); }
 	bool appendToken(Int64 value);
 	bool set_min_freq(Int64 value);
-	bool set_min_encoded_freq(Int64 value);
 	bool set_min_num_tokens(Int64 value);
 	bool set_max_num_tokens(Int64 value);
 	bool set_max_num_results(Int64 value);
@@ -38,8 +37,7 @@ public:
 
 	Int32 token(Int32 index) const;
 	Int32 num_tokens() const { return static_cast<Int32>(tokens_.size()); }
-	Int64 min_freq() const { return min_freq_; }
-	Int16 min_encoded_freq() const { return min_encoded_freq_; }
+	Int16 min_freq() const { return min_freq_; }
 	Int32 min_num_tokens() const { return min_num_tokens_; }
 	Int32 max_num_tokens() const { return max_num_tokens_; }
 	UInt64 max_num_results() const { return max_num_results_; }
@@ -63,28 +61,24 @@ public:
 
 	static const Int64 MIN_TOKEN = 0;
 	static const Int64 MIN_FREQ = 1;
-	static const Int64 MIN_ENCODED_FREQ = 1;
 	static const Int64 MIN_NUM_TOKENS = 0;
 	static const Int64 MIN_NUM_RESULTS = 0;
 	static const Int64 MIN_IO_LIMIT = 0;
 
 	static const Int64 MAX_TOKEN = 0x7FFFFFFF;
 	static const Int64 MAX_FREQ = FreqHandler::MAX_FREQ;
-	static const Int64 MAX_ENCODED_FREQ = FreqHandler::MAX_ENCODED_FREQ;
 	static const Int64 MAX_NUM_TOKENS = 30;
 	static const Int64 MAX_NUM_RESULTS = 0xFFFFFFFFFFLL;
 	static const Int64 MAX_IO_LIMIT = 0xFFFFFFFFFFLL;
 
 private:
 	std::vector<Int32> tokens_;
-	Int64 min_freq_;
-	Int16 min_encoded_freq_;
+	Int16 min_freq_;
 	Int32 min_num_tokens_;
 	Int32 max_num_tokens_;
 	UInt64 max_num_results_;
 	UInt64 io_limit_;
 	TokenOrder order_;
-	FreqHandler freq_handler_;
 
 	static bool percentDecode(const String &src, StringBuilder *dest);
 	static Int8 percentDecode(Int8 hi_byte, Int8 lo_byte);

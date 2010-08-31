@@ -2,16 +2,14 @@
 
 namespace ssgnc {
 
-Query::Query() : tokens_(), min_freq_(MIN_FREQ),
-	min_encoded_freq_(MIN_ENCODED_FREQ), min_num_tokens_(0),
+Query::Query() : tokens_(), min_freq_(1), min_num_tokens_(0),
 	max_num_tokens_(0), max_num_results_(0), io_limit_(0),
-	order_(DEFAULT_ORDER), freq_handler_() {}
+	order_(DEFAULT_ORDER) {}
 
 void Query::clear()
 {
 	tokens_.clear();
-	min_freq_ = MIN_FREQ;
-	min_encoded_freq_ = MIN_ENCODED_FREQ;
+	min_freq_ = 1;
 	min_num_tokens_ = 0;
 	max_num_tokens_ = 0;
 	max_num_results_ = 0;
@@ -38,7 +36,6 @@ bool Query::clone(Query *dest) const
 	}
 
 	dest->min_freq_ = min_freq_;
-	dest->min_encoded_freq_ = min_encoded_freq_;
 	dest->min_num_tokens_ = min_num_tokens_;
 	dest->max_num_tokens_ = max_num_tokens_;
 	dest->max_num_results_ = max_num_results_;
@@ -78,40 +75,14 @@ bool Query::set_min_freq(Int64 value)
 		return false;
 	}
 
-	Int16 encoded_freq;
-	if (!freq_handler_.encode(value, &encoded_freq))
+	Int16 freq;
+	if (!FreqHandler().encode(value, &freq))
 	{
 		SSGNC_ERROR << "ssgnc::FreqHandler::encode() failed: "
 			<< value << std::endl;
 		return false;
 	}
-
-	if (!set_min_encoded_freq(encoded_freq))
-	{
-		SSGNC_ERROR << "ssgnc::Query::set_min_encoded_freq() failed: "
-			<< encoded_freq << std::endl;
-		return false;
-	}
-	return true;
-}
-
-bool Query::set_min_encoded_freq(Int64 value)
-{
-	if (value < MIN_ENCODED_FREQ && value > MIN_ENCODED_FREQ)
-	{
-		SSGNC_ERROR << "Out of range encoded freq: " << value << std::endl;
-		return false;
-	}
-
-	Int64 freq;
-	if (!freq_handler_.decode(static_cast<Int16>(value), &freq))
-	{
-		SSGNC_ERROR << "ssgnc::FreqHandler::decode() failed: "
-			<< value << std::endl;
-		return false;
-	}
 	min_freq_ = freq;
-	min_encoded_freq_ = static_cast<Int16>(value);
 	return true;
 }
 
@@ -400,6 +371,7 @@ bool Query::parseKeyValue(const String &key, const String &value)
 
 bool Query::parseMinFreq(const String &str)
 {
+	static const FreqHandler freq_handler;
 
 	Int64 value;
 	if (!parseInt(str, &value))
