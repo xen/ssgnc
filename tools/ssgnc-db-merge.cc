@@ -8,51 +8,61 @@ ssgnc::VocabDic vocab_dic;
 bool readNgram(ssgnc::ByteReader *byte_reader, ssgnc::Int16 *freq,
 	ssgnc::StringBuilder *ngram_buf)
 {
-	if (!ssgnc::tools::readFreq(byte_reader, ngram_buf, freq))
-	{
-		SSGNC_ERROR << "ssgnc::tools::readFreq() failed" << std::endl;
-		return false;
-	}
+	ngram_buf->clear();
 
-	if (*freq == 0)
+	ssgnc::Int32 byte;
+	ssgnc::Int32 temp_freq = 0;
+	while ((byte = byte_reader->read()) >= 0)
+	{
+		ngram_buf->append(static_cast<ssgnc::Int8>(byte));
+
+		temp_freq = (temp_freq << 7) + (byte & 0x7F);
+		if (temp_freq > ssgnc::FreqHandler::MAX_ENCODED_FREQ)
+		{
+			ERROR << "out of range freq: " << temp_freq << std::endl;
+			return false;
+		}
+		else if (byte < 0x80)
+			break;
+	}
+	*freq = static_cast<ssgnc::Int16>(temp_freq);
+
+	if (byte < 0)
+		return false;
+	else if (*freq == 0)
 		return true;
 
-	if (!ssgnc::tools::readTokens(num_tokens, vocab_dic,
-		byte_reader, ngram_buf, NULL))
+	ssgnc::Int32 token = 0;
+	ssgnc::Int32 token_count = 0;
+	while ((byte = byte_reader->read()) >= 0)
 	{
-		SSGNC_ERROR << "ssgnc::tools::readTokens() failed" << std::endl;
-		return false;
+		ngram_buf->append(static_cast<ssgnc::Int8>(byte));
+
+		token = (token << 7) + (byte & 0x7F);
+		if (byte < 0x80)
+		{
+			if (static_cast<ssgnc::UInt32>(token) >= vocab_dic.num_keys())
+			{
+				ERROR << "unknown token: " << token << std::endl;
+				return false;
+			}
+			token = 0;
+
+			if (++token_count == num_tokens)
+				return true;
+		}
 	}
 
-	return true;
+	return false;
 }
 
 bool mergeDatabase(std::vector<std::ifstream *> *files)
 {
 	enum { BYTE_READER_BUF_SIZE = 1 << 20 };
 
-	ssgnc::ByteReader *readers;
-	try
-	{
-		readers = new ssgnc::ByteReader[files->size()];
-	}
-	catch (...)
-	{
-		SSGNC_ERROR << "new ssgnc::ByteReader[] failed: "
-			<< sizeof(ssgnc::ByteReader) << " * "
-			<< files->size() << std::endl;
-		return false;
-	}
-
+	ssgnc::ByteReader *readers = new ssgnc::ByteReader[files->size()];
 	for (std::size_t i = 0; i < files->size(); ++i)
-	{
-		if (!readers[i].open((*files)[i], BYTE_READER_BUF_SIZE))
-		{
-			SSGNC_ERROR << "ssgnc::ByteReader::open() failed: " << std::endl;
-			delete [] readers;
-			return false;
-		}
-	}
+		readers[i].open((*files)[i], BYTE_READER_BUF_SIZE);
 
 	ssgnc::UInt64 num_ngrams = 0;
 	ssgnc::UInt64 total_size = 0;
@@ -68,20 +78,14 @@ bool mergeDatabase(std::vector<std::ifstream *> *files)
 				ssgnc::Int16 freq;
 				if (!readNgram(&readers[file_id], &freq, &ngram_buf))
 				{
-					SSGNC_ERROR << "readNgram() failed" << std::endl;
+					ERROR << "failed to read ngram" << std::endl;
 					delete [] readers;
 					return false;
 				}
 				else if (freq == 0)
 					break;
 
-				std::cout << ngram_buf;
-				if (!std::cout)
-				{
-					SSGNC_ERROR << "std::ostream::operator<<() failed"
-						<< std::endl;
-					return false;
-				}
+				std::cout << ngram_buf.str();
 
 				++num_ngrams;
 				total_size += ngram_buf.length();
@@ -92,9 +96,9 @@ bool mergeDatabase(std::vector<std::ifstream *> *files)
 
 	for (std::size_t file_id = 0; file_id < files->size(); ++file_id)
 	{
-		if (!readers[file_id].eof())
+		if (readers[file_id].read() >= 0)
 		{
-			SSGNC_ERROR << "Extra bytes" << std::endl;
+			ERROR << "extra bytes" << std::endl;
 			delete [] readers;
 			return false;
 		}
@@ -104,7 +108,7 @@ bool mergeDatabase(std::vector<std::ifstream *> *files)
 
 	if (!std::cout.flush())
 	{
-		SSGNC_ERROR << "std::ostream::flush() failed" << std::endl;
+		ERROR << "failed to flush standard output" << std::endl;
 		return false;
 	}
 
@@ -130,7 +134,8 @@ int main(int argc, char *argv[])
 	if (!ssgnc::tools::parseNumTokens(argv[1], &num_tokens))
 		return 2;
 
-	if (!vocab_dic.open(argv[2]))
+	ssgnc::FileMap file_map;
+	if (!ssgnc::tools::mmapVocabDic(argv[2], &file_map, &vocab_dic))
 		return 3;
 
 	std::vector<std::ifstream *> files;
@@ -141,7 +146,14 @@ int main(int argc, char *argv[])
 	if (!mergeDatabase(&files))
 		ret = 5;
 
-	ssgnc::tools::closeFiles(&files);
+	for (std::size_t i = 0; i < files.size(); ++i)
+	{
+		if (files[i] != NULL)
+		{
+			delete files[i];
+			files[i] = NULL;
+		}
+	}
 
 	return ret;
 }

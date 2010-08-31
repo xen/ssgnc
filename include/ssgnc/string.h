@@ -1,7 +1,9 @@
 #ifndef SSGNC_STRING_H
 #define SSGNC_STRING_H
 
-#include "common.h"
+#include "int-types.h"
+
+#include <iostream>
 
 namespace ssgnc {
 
@@ -19,13 +21,21 @@ public:
 	String &operator=(const String &str);
 	Int8 operator[](UInt32 index) const { return ptr_[index]; }
 
+	bool operator==(const Int8 *str) const;
 	bool operator==(const String &str) const;
+	bool operator!=(const Int8 *str) const { return !(*this == str); }
 	bool operator!=(const String &str) const { return !(*this == str); }
 
+	bool operator<(const Int8 *str) const { return compare(str) < 0; }
 	bool operator<(const String &str) const { return compare(str) < 0; }
+	bool operator<=(const Int8 *str) const { return compare(str) <= 0; }
 	bool operator<=(const String &str) const { return compare(str) <= 0; }
+	bool operator>(const Int8 *str) const { return compare(str) > 0; }
 	bool operator>(const String &str) const { return compare(str) > 0; }
+	bool operator>=(const Int8 *str) const { return compare(str) >= 0; }
 	bool operator>=(const String &str) const { return compare(str) >= 0; }
+
+	bool empty() const { return length_ == 0; }
 
 	const Int8 *ptr() const { return ptr_; }
 	UInt32 length() const { return length_; }
@@ -33,19 +43,10 @@ public:
 	const Int8 *begin() const { return ptr_; }
 	const Int8 *end() const { return ptr_ + length_; }
 
-	bool empty() const { return length_ == 0; }
+	String first(Int8 c) const;
+	String last(Int8 c) const;
 
-	bool contains(Int8 c) const;
-
-	bool startsWith(const String &str) const;
-	bool lowerStartsWith(const String &str) const;
-
-	bool endsWith(Int8 c) const
-	{ return !empty() && (ptr_[length_ - 1] == c); }
-
-	bool first(Int8 c, UInt32 *pos) const;
-	bool last(Int8 c, UInt32 *pos) const;
-
+	int compare(const Int8 *str) const;
 	int compare(const String &str) const;
 
 	String substr(UInt32 pos) const
@@ -67,6 +68,18 @@ inline String &String::operator=(const String &str)
 	return *this;
 }
 
+inline bool String::operator==(const Int8 *str) const
+{
+	UInt32 i = 0;
+	while (i < length_)
+	{
+		if (str[i] == '\0' || ptr_[i] != str[i])
+			return false;
+		++i;
+	}
+	return str[i] == '\0';
+}
+
 inline bool String::operator==(const String &str) const
 {
 	if (length_ != str.length_)
@@ -79,76 +92,21 @@ inline bool String::operator==(const String &str) const
 	return true;
 }
 
-inline bool String::contains(Int8 c) const
+inline int String::compare(const Int8 *str) const
 {
-	for (UInt32 i = 0; i < length_; ++i)
+	std::size_t i = 0;
+	while (i < length_)
 	{
-		if (ptr_[i] == c)
-			return true;
+		if (str[i] == '\0')
+			return 1;
+
+		UInt8 lc = static_cast<UInt8>(ptr_[i]);
+		UInt8 rc = static_cast<UInt8>(str[i]);
+		if (lc != rc)
+			return lc - rc;
+		++i;
 	}
-	return false;
-}
-
-inline bool String::startsWith(const String &str) const
-{
-	if (length_ < str.length())
-		return false;
-	for (std::size_t i = 0; i < str.length(); ++i)
-	{
-		if (ptr_[i] != str[i])
-			return false;
-	}
-	return true;
-}
-
-inline bool String::lowerStartsWith(const String &str) const
-{
-	if (length_ < str.length())
-		return false;
-	for (std::size_t i = 0; i < str.length(); ++i)
-	{
-		if (std::tolower(static_cast<UInt8>(ptr_[i])) !=
-			std::tolower(static_cast<UInt8>(str[i])))
-			return false;
-	}
-	return true;
-}
-
-inline bool String::first(Int8 c, UInt32 *pos) const
-{
-	for (UInt32 i = 0; i < length_; ++i)
-	{
-		if (ptr_[i] == c)
-		{
-			*pos = i;
-			return true;
-		}
-	}
-	return false;
-}
-
-inline bool String::last(Int8 c, UInt32 *pos) const
-{
-	for (UInt32 i = 1; i <= length_; ++i)
-	{
-		if (ptr_[length_ - i] == c)
-		{
-			*pos = length_ - i;
-			return true;
-		}
-	}
-	return false;
-}
-
-inline UInt32 String::lengthOf(const Int8 *str)
-{
-	if (str == NULL)
-		return 0;
-
-	UInt32 length = 0;
-	while (str[length] != '\0')
-		++length;
-	return length;
+	return (str[i] == '\0') ? 0 : -1;
 }
 
 inline int String::compare(const String &str) const
@@ -166,6 +124,34 @@ inline int String::compare(const String &str) const
 		++i;
 	}
 	return (i == str.length()) ? 0 : -1;
+}
+
+inline String String::first(Int8 c) const
+{
+	for (UInt32 i = 0; i < length_; ++i)
+	{
+		if (ptr_[i] == c)
+			return substr(i, 1);
+	}
+	return substr(length_);
+}
+
+inline String String::last(Int8 c) const
+{
+	for (UInt32 i = 1; i <= length_; ++i)
+	{
+		if (ptr_[length_ - i] == c)
+			return substr(length_ - i, 1);
+	}
+	return substr(length_);
+}
+
+inline UInt32 String::lengthOf(const Int8 *str)
+{
+	UInt32 length = 0;
+	while (str[length] != '\0')
+		++length;
+	return length;
 }
 
 }  // namespace ssgnc

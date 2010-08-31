@@ -1,26 +1,24 @@
 #ifndef SSGNC_FILE_MAP_H
 #define SSGNC_FILE_MAP_H
 
-#include "common.h"
+#include "string.h"
 
 namespace ssgnc {
 
 class FileMap
 {
 public:
-	enum Mode { MMAP_FILE, READ_FILE, DEFAULT_MODE = MMAP_FILE };
-
 	FileMap() : impl_(NULL), ptr_(NULL), size_(0) {}
-	~FileMap();
+	~FileMap() { close(); }
 
-	bool open(const Int8 *path, Mode mode = DEFAULT_MODE)
-		SSGNC_WARN_UNUSED_RESULT;
-	bool close();
+	bool open(const Int8 *path);
+	void close();
 
 	const void *ptr() const { return ptr_; }
 	UInt32 size() const { return size_; }
 
-	bool is_open() const { return impl_ != NULL; }
+	String str() const
+	{ return String(static_cast<const Int8 *>(ptr_), size_); }
 
 	enum { MAX_FILE_SIZE = 0x7FFFFFFFU };
 

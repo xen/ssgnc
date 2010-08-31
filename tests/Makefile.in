@@ -32,14 +32,11 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-TESTS = test-byte-reader$(EXEEXT) test-common$(EXEEXT) \
-	test-file-map$(EXEEXT) test-file-path$(EXEEXT) \
-	test-freq-handler$(EXEEXT) test-heap-queue$(EXEEXT) \
-	test-mem-pool$(EXEEXT) test-ngram-index$(EXEEXT) \
-	test-ngram-reader$(EXEEXT) test-query$(EXEEXT) \
-	test-reader$(EXEEXT) test-string$(EXEEXT) \
-	test-string-builder$(EXEEXT) test-writer$(EXEEXT) \
-	test-vocab-dic$(EXEEXT)
+TESTS = test-byte-reader$(EXEEXT) test-file-map$(EXEEXT) \
+	test-file-path$(EXEEXT) test-freq-handler$(EXEEXT) \
+	test-heap-queue$(EXEEXT) test-int-types$(EXEEXT) \
+	test-mem-pool$(EXEEXT) test-string$(EXEEXT) \
+	test-string-builder$(EXEEXT) test-vocab-dic$(EXEEXT)
 noinst_PROGRAMS = $(am__EXEEXT_1)
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
@@ -50,21 +47,15 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__EXEEXT_1 = test-byte-reader$(EXEEXT) test-common$(EXEEXT) \
-	test-file-map$(EXEEXT) test-file-path$(EXEEXT) \
-	test-freq-handler$(EXEEXT) test-heap-queue$(EXEEXT) \
-	test-mem-pool$(EXEEXT) test-ngram-index$(EXEEXT) \
-	test-ngram-reader$(EXEEXT) test-query$(EXEEXT) \
-	test-reader$(EXEEXT) test-string$(EXEEXT) \
-	test-string-builder$(EXEEXT) test-writer$(EXEEXT) \
-	test-vocab-dic$(EXEEXT)
+am__EXEEXT_1 = test-byte-reader$(EXEEXT) test-file-map$(EXEEXT) \
+	test-file-path$(EXEEXT) test-freq-handler$(EXEEXT) \
+	test-heap-queue$(EXEEXT) test-int-types$(EXEEXT) \
+	test-mem-pool$(EXEEXT) test-string$(EXEEXT) \
+	test-string-builder$(EXEEXT) test-vocab-dic$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
 am_test_byte_reader_OBJECTS = test-byte-reader.$(OBJEXT)
 test_byte_reader_OBJECTS = $(am_test_byte_reader_OBJECTS)
 test_byte_reader_DEPENDENCIES = ../lib/libssgnc.a
-am_test_common_OBJECTS = test-common.$(OBJEXT)
-test_common_OBJECTS = $(am_test_common_OBJECTS)
-test_common_DEPENDENCIES = ../lib/libssgnc.a
 am_test_file_map_OBJECTS = test-file-map.$(OBJEXT)
 test_file_map_OBJECTS = $(am_test_file_map_OBJECTS)
 test_file_map_DEPENDENCIES = ../lib/libssgnc.a
@@ -77,21 +68,12 @@ test_freq_handler_DEPENDENCIES = ../lib/libssgnc.a
 am_test_heap_queue_OBJECTS = test-heap-queue.$(OBJEXT)
 test_heap_queue_OBJECTS = $(am_test_heap_queue_OBJECTS)
 test_heap_queue_DEPENDENCIES = ../lib/libssgnc.a
+am_test_int_types_OBJECTS = test-int-types.$(OBJEXT)
+test_int_types_OBJECTS = $(am_test_int_types_OBJECTS)
+test_int_types_DEPENDENCIES = ../lib/libssgnc.a
 am_test_mem_pool_OBJECTS = test-mem-pool.$(OBJEXT)
 test_mem_pool_OBJECTS = $(am_test_mem_pool_OBJECTS)
 test_mem_pool_DEPENDENCIES = ../lib/libssgnc.a
-am_test_ngram_index_OBJECTS = test-ngram-index.$(OBJEXT)
-test_ngram_index_OBJECTS = $(am_test_ngram_index_OBJECTS)
-test_ngram_index_DEPENDENCIES = ../lib/libssgnc.a
-am_test_ngram_reader_OBJECTS = test-ngram-reader.$(OBJEXT)
-test_ngram_reader_OBJECTS = $(am_test_ngram_reader_OBJECTS)
-test_ngram_reader_DEPENDENCIES = ../lib/libssgnc.a
-am_test_query_OBJECTS = test-query.$(OBJEXT)
-test_query_OBJECTS = $(am_test_query_OBJECTS)
-test_query_DEPENDENCIES = ../lib/libssgnc.a
-am_test_reader_OBJECTS = test-reader.$(OBJEXT)
-test_reader_OBJECTS = $(am_test_reader_OBJECTS)
-test_reader_DEPENDENCIES = ../lib/libssgnc.a
 am_test_string_OBJECTS = test-string.$(OBJEXT)
 test_string_OBJECTS = $(am_test_string_OBJECTS)
 test_string_DEPENDENCIES = ../lib/libssgnc.a
@@ -101,9 +83,6 @@ test_string_builder_DEPENDENCIES = ../lib/libssgnc.a
 am_test_vocab_dic_OBJECTS = test-vocab-dic.$(OBJEXT)
 test_vocab_dic_OBJECTS = $(am_test_vocab_dic_OBJECTS)
 test_vocab_dic_DEPENDENCIES = ../lib/libssgnc.a
-am_test_writer_OBJECTS = test-writer.$(OBJEXT)
-test_writer_OBJECTS = $(am_test_writer_OBJECTS)
-test_writer_DEPENDENCIES = ../lib/libssgnc.a
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -113,22 +92,16 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(test_byte_reader_SOURCES) $(test_common_SOURCES) \
-	$(test_file_map_SOURCES) $(test_file_path_SOURCES) \
-	$(test_freq_handler_SOURCES) $(test_heap_queue_SOURCES) \
-	$(test_mem_pool_SOURCES) $(test_ngram_index_SOURCES) \
-	$(test_ngram_reader_SOURCES) $(test_query_SOURCES) \
-	$(test_reader_SOURCES) $(test_string_SOURCES) \
-	$(test_string_builder_SOURCES) $(test_vocab_dic_SOURCES) \
-	$(test_writer_SOURCES)
-DIST_SOURCES = $(test_byte_reader_SOURCES) $(test_common_SOURCES) \
-	$(test_file_map_SOURCES) $(test_file_path_SOURCES) \
-	$(test_freq_handler_SOURCES) $(test_heap_queue_SOURCES) \
-	$(test_mem_pool_SOURCES) $(test_ngram_index_SOURCES) \
-	$(test_ngram_reader_SOURCES) $(test_query_SOURCES) \
-	$(test_reader_SOURCES) $(test_string_SOURCES) \
-	$(test_string_builder_SOURCES) $(test_vocab_dic_SOURCES) \
-	$(test_writer_SOURCES)
+SOURCES = $(test_byte_reader_SOURCES) $(test_file_map_SOURCES) \
+	$(test_file_path_SOURCES) $(test_freq_handler_SOURCES) \
+	$(test_heap_queue_SOURCES) $(test_int_types_SOURCES) \
+	$(test_mem_pool_SOURCES) $(test_string_SOURCES) \
+	$(test_string_builder_SOURCES) $(test_vocab_dic_SOURCES)
+DIST_SOURCES = $(test_byte_reader_SOURCES) $(test_file_map_SOURCES) \
+	$(test_file_path_SOURCES) $(test_freq_handler_SOURCES) \
+	$(test_heap_queue_SOURCES) $(test_int_types_SOURCES) \
+	$(test_mem_pool_SOURCES) $(test_string_SOURCES) \
+	$(test_string_builder_SOURCES) $(test_vocab_dic_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 am__tty_colors = \
@@ -228,8 +201,6 @@ top_srcdir = @top_srcdir@
 AM_CXXFLAGS = -Wall -Weffc++ -lstdc++ -I../include
 test_byte_reader_SOURCES = test-byte-reader.cc
 test_byte_reader_LDADD = ../lib/libssgnc.a
-test_common_SOURCES = test-common.cc
-test_common_LDADD = ../lib/libssgnc.a
 test_file_map_SOURCES = test-file-map.cc
 test_file_map_LDADD = ../lib/libssgnc.a
 test_file_path_SOURCES = test-file-path.cc
@@ -238,24 +209,16 @@ test_freq_handler_SOURCES = test-freq-handler.cc
 test_freq_handler_LDADD = ../lib/libssgnc.a
 test_heap_queue_SOURCES = test-heap-queue.cc
 test_heap_queue_LDADD = ../lib/libssgnc.a
+test_int_types_SOURCES = test-int-types.cc
+test_int_types_LDADD = ../lib/libssgnc.a
 test_mem_pool_SOURCES = test-mem-pool.cc
 test_mem_pool_LDADD = ../lib/libssgnc.a
-test_ngram_index_SOURCES = test-ngram-index.cc
-test_ngram_index_LDADD = ../lib/libssgnc.a
-test_ngram_reader_SOURCES = test-ngram-reader.cc
-test_ngram_reader_LDADD = ../lib/libssgnc.a
-test_query_SOURCES = test-query.cc
-test_query_LDADD = ../lib/libssgnc.a
-test_reader_SOURCES = test-reader.cc
-test_reader_LDADD = ../lib/libssgnc.a
 test_string_SOURCES = test-string.cc
 test_string_LDADD = ../lib/libssgnc.a
 test_string_builder_SOURCES = test-string-builder.cc
 test_string_builder_LDADD = ../lib/libssgnc.a
 test_vocab_dic_SOURCES = test-vocab-dic.cc
 test_vocab_dic_LDADD = ../lib/libssgnc.a
-test_writer_SOURCES = test-writer.cc
-test_writer_LDADD = ../lib/libssgnc.a
 all: all-am
 
 .SUFFIXES:
@@ -296,9 +259,6 @@ clean-noinstPROGRAMS:
 test-byte-reader$(EXEEXT): $(test_byte_reader_OBJECTS) $(test_byte_reader_DEPENDENCIES) 
 	@rm -f test-byte-reader$(EXEEXT)
 	$(CXXLINK) $(test_byte_reader_OBJECTS) $(test_byte_reader_LDADD) $(LIBS)
-test-common$(EXEEXT): $(test_common_OBJECTS) $(test_common_DEPENDENCIES) 
-	@rm -f test-common$(EXEEXT)
-	$(CXXLINK) $(test_common_OBJECTS) $(test_common_LDADD) $(LIBS)
 test-file-map$(EXEEXT): $(test_file_map_OBJECTS) $(test_file_map_DEPENDENCIES) 
 	@rm -f test-file-map$(EXEEXT)
 	$(CXXLINK) $(test_file_map_OBJECTS) $(test_file_map_LDADD) $(LIBS)
@@ -311,21 +271,12 @@ test-freq-handler$(EXEEXT): $(test_freq_handler_OBJECTS) $(test_freq_handler_DEP
 test-heap-queue$(EXEEXT): $(test_heap_queue_OBJECTS) $(test_heap_queue_DEPENDENCIES) 
 	@rm -f test-heap-queue$(EXEEXT)
 	$(CXXLINK) $(test_heap_queue_OBJECTS) $(test_heap_queue_LDADD) $(LIBS)
+test-int-types$(EXEEXT): $(test_int_types_OBJECTS) $(test_int_types_DEPENDENCIES) 
+	@rm -f test-int-types$(EXEEXT)
+	$(CXXLINK) $(test_int_types_OBJECTS) $(test_int_types_LDADD) $(LIBS)
 test-mem-pool$(EXEEXT): $(test_mem_pool_OBJECTS) $(test_mem_pool_DEPENDENCIES) 
 	@rm -f test-mem-pool$(EXEEXT)
 	$(CXXLINK) $(test_mem_pool_OBJECTS) $(test_mem_pool_LDADD) $(LIBS)
-test-ngram-index$(EXEEXT): $(test_ngram_index_OBJECTS) $(test_ngram_index_DEPENDENCIES) 
-	@rm -f test-ngram-index$(EXEEXT)
-	$(CXXLINK) $(test_ngram_index_OBJECTS) $(test_ngram_index_LDADD) $(LIBS)
-test-ngram-reader$(EXEEXT): $(test_ngram_reader_OBJECTS) $(test_ngram_reader_DEPENDENCIES) 
-	@rm -f test-ngram-reader$(EXEEXT)
-	$(CXXLINK) $(test_ngram_reader_OBJECTS) $(test_ngram_reader_LDADD) $(LIBS)
-test-query$(EXEEXT): $(test_query_OBJECTS) $(test_query_DEPENDENCIES) 
-	@rm -f test-query$(EXEEXT)
-	$(CXXLINK) $(test_query_OBJECTS) $(test_query_LDADD) $(LIBS)
-test-reader$(EXEEXT): $(test_reader_OBJECTS) $(test_reader_DEPENDENCIES) 
-	@rm -f test-reader$(EXEEXT)
-	$(CXXLINK) $(test_reader_OBJECTS) $(test_reader_LDADD) $(LIBS)
 test-string$(EXEEXT): $(test_string_OBJECTS) $(test_string_DEPENDENCIES) 
 	@rm -f test-string$(EXEEXT)
 	$(CXXLINK) $(test_string_OBJECTS) $(test_string_LDADD) $(LIBS)
@@ -335,9 +286,6 @@ test-string-builder$(EXEEXT): $(test_string_builder_OBJECTS) $(test_string_build
 test-vocab-dic$(EXEEXT): $(test_vocab_dic_OBJECTS) $(test_vocab_dic_DEPENDENCIES) 
 	@rm -f test-vocab-dic$(EXEEXT)
 	$(CXXLINK) $(test_vocab_dic_OBJECTS) $(test_vocab_dic_LDADD) $(LIBS)
-test-writer$(EXEEXT): $(test_writer_OBJECTS) $(test_writer_DEPENDENCIES) 
-	@rm -f test-writer$(EXEEXT)
-	$(CXXLINK) $(test_writer_OBJECTS) $(test_writer_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -346,20 +294,15 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-byte-reader.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-file-map.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-file-path.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-freq-handler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-heap-queue.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-int-types.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-mem-pool.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-ngram-index.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-ngram-reader.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-query.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-reader.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-string-builder.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-string.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-vocab-dic.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-writer.Po@am__quote@
 
 .cc.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

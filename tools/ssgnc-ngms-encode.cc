@@ -1,8 +1,12 @@
 #include "tools-common.h"
 
 #include <algorithm>
+#include <string>
 
 namespace {
+
+ssgnc::Int32 num_tokens;
+ssgnc::VocabDic vocab_dic;
 
 struct Ngram
 {
@@ -18,125 +22,8 @@ public:
 	{ return lhs.freq > rhs.freq; }
 };
 
-ssgnc::Int32 num_tokens;
-ssgnc::VocabDic vocab_dic;
-ssgnc::MemPool freq_tokens_pool;
-std::vector<Ngram> ngrams;
-ssgnc::FreqHandler freq_handler;
-
-bool testMemLimit(ssgnc::UInt64 *mem_limit)
+void encodeValue(ssgnc::Int32 value, ssgnc::StringBuilder *builder)
 {
-	if (vocab_dic.total_size() >= *mem_limit ||
-		*mem_limit - vocab_dic.total_size() < (256ULL << 20))
-	{
-		SSGNC_ERROR << "Not enough memory: " << *mem_limit << std::endl;
-		return false;
-	}
-
-	*mem_limit -= vocab_dic.total_size();
-	try
-	{
-		ngrams.reserve(*mem_limit / 16);
-	}
-	catch (...)
-	{
-		SSGNC_ERROR << "std::vector<Ngram>::reserve() failed: "
-			<< sizeof(Ngram) << " * " << (*mem_limit / 16) << std::endl;
-		return false;
-	}
-	*mem_limit -= sizeof(ngrams[0]) * ngrams.capacity();
-	return true;
-}
-
-bool parseLine(const ssgnc::String &line,
-	ssgnc::Int16 *encoded_freq, ssgnc::String *avail)
-{
-	ssgnc::UInt32 delim_pos;
-	if (!line.last('\t', &delim_pos))
-	{
-		SSGNC_ERROR << "No delimitor: " << line << std::endl;
-		return false;
-	}
-
-	const ssgnc::Int8 *freq_str = line.ptr() + delim_pos + 1;
-	ssgnc::Int64 freq;
-	if (!ssgnc::tools::parseInt64(freq_str, &freq))
-	{
-		SSGNC_ERROR << "ssgnc::tools::parseInt64() failed: "
-			<< freq_str << std::endl;
-		return false;
-	}
-
-	if (!freq_handler.encode(freq, encoded_freq))
-	{
-		SSGNC_ERROR << "ssgnc::FreqHandler::encode() failed: "
-			<< freq << std::endl;
-		return false;
-	}
-
-	*avail = line.substr(0, delim_pos);
-	return true;
-}
-
-bool parseTokens(ssgnc::String avail, std::vector<ssgnc::Int32> *tokens)
-{
-	tokens->clear();
-	for (ssgnc::Int32 i = 0; i < num_tokens; ++i)
-	{
-		if (avail.empty())
-		{
-			SSGNC_ERROR << "Too few tokens: " << avail << std::endl;
-			return false;
-		}
-
-		ssgnc::String token;
-		ssgnc::UInt32 delim_pos;
-		if (avail.first(' ', &delim_pos))
-		{
-			token = avail.substr(0, delim_pos);
-			avail = avail.substr(delim_pos + 1);
-		}
-		else
-		{
-			token = avail;
-			avail = avail.substr(avail.length());
-		}
-
-		ssgnc::Int32 token_id;
-		if (!vocab_dic.find(token, &token_id))
-		{
-			SSGNC_ERROR << "Unknown token: " << token << std::endl;
-			return false;
-		}
-
-		try
-		{
-			tokens->push_back(token_id);
-		}
-		catch (...)
-		{
-			SSGNC_ERROR << "std::vector<ssgnc::Int32>::push_back() "
-				"failed: " << tokens->size() << std::endl;
-			return false;
-		}
-	}
-
-	if (!avail.empty())
-	{
-		SSGNC_ERROR << "Too many tokens: " << avail << std::endl;
-		return false;
-	}
-	return true;
-}
-
-bool encodeValue(ssgnc::Int32 value, ssgnc::StringBuilder *builder)
-{
-	if (value < 0)
-	{
-		SSGNC_ERROR << "Negative value: " << value << std::endl;
-		return false;
-	}
-
 	ssgnc::UInt8 temp_buf[8];
 	ssgnc::Int32 num_bytes = 0;
 
@@ -149,178 +36,156 @@ bool encodeValue(ssgnc::Int32 value, ssgnc::StringBuilder *builder)
 
 	for (ssgnc::Int32 i = 1; i < num_bytes; ++i)
 	{
-		if (!builder->append(static_cast<ssgnc::Int8>(
-			temp_buf[num_bytes - i] | 0x80)))
-		{
-			SSGNC_ERROR << "ssgnc::StringBuilder::append() failed"
-				<< std::endl;
-			return false;
-		}
+		builder->append(static_cast<ssgnc::Int8>(
+			temp_buf[num_bytes - i] | 0x80));
 	}
-
-	if (!builder->append(static_cast<ssgnc::Int8>(temp_buf[0])))
-	{
-		SSGNC_ERROR << "ssgnc::StringBuilder::append() failed" << std::endl;
-		return false;
-	}
-
-	return true;
+	builder->append(static_cast<ssgnc::Int8>(temp_buf[0]));
 }
 
-bool encodeFreqTokens(ssgnc::Int16 freq,
+void encodeFreqTokens(ssgnc::Int16 freq,
 	const std::vector<ssgnc::Int32> &tokens,
 	ssgnc::StringBuilder *freq_tokens)
 {
 	freq_tokens->clear();
 
-	if (!encodeValue(freq, freq_tokens))
-	{
-		SSGNC_ERROR << "encodeValue() failed: " << freq << std::endl;
-		return false;
-	}
-
+	encodeValue(freq, freq_tokens);
 	for (std::size_t i = 0; i < tokens.size(); ++i)
-	{
-		if (!encodeValue(tokens[i], freq_tokens))
-		{
-			SSGNC_ERROR << "encodeValue() failed: "
-				<< i << ", " << tokens[i] << std::endl;
-			return false;
-		}
-	}
-
-	return true;
+		encodeValue(tokens[i], freq_tokens);
 }
 
-bool flushNgrams(ssgnc::FilePath *file_path)
+bool flushNgrams(ssgnc::MemPool *freq_tokens_pool,
+	std::vector<Ngram> *ngrams, ssgnc::FilePath *file_path)
 {
-	ssgnc::StringBuilder path;
-	if (!file_path->read(&path))
+	if (!file_path->next())
 	{
-		SSGNC_ERROR << "ssgnc::FilePath::read() failed: " << std::endl;
+		ERROR << "failed to generate path: "
+			<< file_path->format() << std::endl;
 		return false;
 	}
 
-	std::ofstream file(path.ptr(), std::ios::binary);
+	std::ofstream file(file_path->path().ptr(), std::ios::binary);
 	if (!file)
 	{
-		SSGNC_ERROR << "std::ofstream::open() failed: "
-			<< path.str() << std::endl;
+		ERROR << "failed to open file: " << file_path->path() << std::endl;
 		return false;
 	}
 
-	ssgnc::UInt64 mem_usage = vocab_dic.total_size()
-		+ freq_tokens_pool.total_size()
-		+ sizeof(ngrams[0]) * ngrams.capacity();
-	std::cerr << "No. ngrams: " << ngrams.size()
-		<< ", Total length: " << freq_tokens_pool.total_length()
-		<< ", Memory usage: " << mem_usage << std::endl;
+	ssgnc::UInt32 total_size = freq_tokens_pool->total_size()
+		+ static_cast<ssgnc::UInt32>(sizeof((*ngrams)[0]) * ngrams->size());
+	std::cerr << "No. ngrams: " << ngrams->size()
+		<< ", Memory usage: " << total_size
+		<< ", Total length: " << freq_tokens_pool->total_length() << std::endl;
 
-	std::stable_sort(ngrams.begin(), ngrams.end(), NgramComparer());
+	std::stable_sort(ngrams->begin(), ngrams->end(), NgramComparer());
 
-	for (std::size_t i = 0; i < ngrams.size(); ++i)
+	for (std::size_t i = 0; i < ngrams->size(); ++i)
 	{
-		const Ngram &ngram = ngrams[i];
-		ssgnc::String ngram_str;
-		if (!freq_tokens_pool.get(ngram.pos, ngram.length, &ngram_str))
-		{
-			SSGNC_ERROR << "ssgnc::MemPool::get() failed: "
-				<< ngram.pos << ", " << ngram.length << std::endl;
-			return false;
-		}
-
-		file << ngram_str;
-		if (!file)
-		{
-			SSGNC_ERROR << "std::ofstream::operator<<() failed" << std::endl;
-			return false;
-		}
+		const Ngram &ngram = (*ngrams)[i];
+		file << freq_tokens_pool->get(ngram.pos, ngram.length);
 	}
 
-	freq_tokens_pool.clear();
-	ngrams.clear();
+	freq_tokens_pool->clear();
+	ngrams->clear();
 
 	if (!file.flush())
 	{
-		SSGNC_ERROR << "std::ofstream::flush() failed" << std::endl;
+		ERROR << "failed to write ngrams" << std::endl;
 		return false;
 	}
 
 	return true;
 }
 
-bool encodeNgrams(ssgnc::FilePath *file_path, ssgnc::UInt64 mem_limit)
+bool encodeNgrams(ssgnc::FilePath *file_path)
 {
-	if (!testMemLimit(&mem_limit))
-	{
-		SSGNC_ERROR << "testMemLimit() failed" << std::endl;
-		return false;
-	}
+	static const ssgnc::UInt32 NUM_NGRAMS_THRESHOLD = 1 << 25;
+	static const ssgnc::UInt32 TOTAL_SIZE_THRESHOLD = 1 << 29;
+
+	ssgnc::FreqHandler freq_handler;
+
+	ssgnc::MemPool freq_tokens_pool;
+	std::vector<Ngram> ngrams;
 
 	std::string line;
 	std::vector<ssgnc::Int32> tokens;
 	ssgnc::StringBuilder freq_tokens;
-	while (ssgnc::tools::readLine(&std::cin, &line))
+	while (std::getline(std::cin, line))
 	{
+		tokens.clear();
+
 		Ngram ngram;
-		ssgnc::String avail;
-		if (!parseLine(ssgnc::String(line.c_str(), line.length()),
-			&ngram.freq, &avail))
+
+		std::string::size_type delim_pos = line.find_last_of('\t');
+		if (delim_pos == std::string::npos)
 		{
-			SSGNC_ERROR << "parseLine() failed: " << line << std::endl;
+			ERROR << "no delimitor: " << line << std::endl;
 			return false;
 		}
 
-		if (!parseTokens(avail, &tokens))
+		const char *freq_str = line.c_str() + delim_pos + 1;
+		char *end_of_freq;
+		long long temp_freq = std::strtoll(freq_str, &end_of_freq, 10);
+		if (*end_of_freq != '\0')
 		{
-			SSGNC_ERROR << "parseTokens() failed: " << avail << std::endl;
+			ERROR << "invalid freq: " << freq_str << std::endl;
 			return false;
 		}
-
-		if (!encodeFreqTokens(ngram.freq, tokens, &freq_tokens))
+		else if (temp_freq <= 0)
 		{
-			SSGNC_ERROR << "encodeFreqTokens() failed" << std::endl;
+			ERROR << "out of range freq: " << temp_freq << std::endl;
 			return false;
 		}
+		ngram.freq = freq_handler.encode(temp_freq);
 
-		if (!freq_tokens_pool.append(freq_tokens.str(), &ngram.pos))
+		ssgnc::String avail(line.c_str(), delim_pos);
+		for (ssgnc::Int32 i = 0; i < num_tokens; ++i)
 		{
-			SSGNC_ERROR << "ssgnc::MemPool::append() failed" << std::endl;
-			return false;
-		}
-		ngram.length = freq_tokens.length();
-
-		try
-		{
-			ngrams.push_back(ngram);
-		}
-		catch (...)
-		{
-			SSGNC_ERROR << "std::vector<Ngram>::push_back() failed: "
-				<< ngrams.size() << std::endl;
-			return false;
-		}
-
-		if (ngrams.size() >= ngrams.capacity() ||
-			freq_tokens_pool.total_size() >= mem_limit)
-		{
-			if (!flushNgrams(file_path))
+			ssgnc::String delim = avail.first(' ');
+			ssgnc::String token(avail.begin(), delim.begin());
+			if (token.empty())
 			{
-				SSGNC_ERROR << "flushNgrams() failed" << std::endl;
+				ERROR << "too few tokens: " << line << std::endl;
 				return false;
 			}
+
+			ssgnc::Int32 token_id = vocab_dic[token];
+			if (token_id < 0)
+			{
+				ERROR << "unknown token: " << token << std::endl;
+				return false;
+			}
+			tokens.push_back(token_id);
+
+			avail = ssgnc::String(delim.end(), avail.end());
+		}
+
+		if (!avail.empty())
+		{
+			ERROR << "too many tokens: " << line << std::endl;
+			return false;
+		}
+
+		encodeFreqTokens(ngram.freq, tokens, &freq_tokens);
+
+		ngram.pos = freq_tokens_pool.append(freq_tokens.str());
+		ngram.length = freq_tokens.length();
+
+		ngrams.push_back(ngram);
+
+		ssgnc::UInt32 total_size = freq_tokens_pool.total_size()
+			+ static_cast<ssgnc::UInt32>(sizeof(ngrams[0]) * ngrams.capacity());
+		if (ngrams.size() >= NUM_NGRAMS_THRESHOLD ||
+			total_size >= TOTAL_SIZE_THRESHOLD)
+		{
+			if (!flushNgrams(&freq_tokens_pool, &ngrams, file_path))
+				return false;
 		}
 	}
-	if (std::cin.bad())
-		return false;
 
 	if (!ngrams.empty())
 	{
-		if (!flushNgrams(file_path))
-		{
-			SSGNC_ERROR << "flushNgrams() failed" << std::endl;
+		if (!flushNgrams(&freq_tokens_pool, &ngrams, file_path))
 			return false;
-		}
 	}
 
 	return true;
@@ -332,29 +197,25 @@ int main(int argc, char *argv[])
 {
 	ssgnc::tools::initIO();
 
-	if (argc < 4 || argc > 5)
+	if (argc != 4)
 	{
 		std::cerr << "Usage: " << argv[0]
-			<< " NUM_TOKENS VOCAB_DIC TEMP_DIR [MEM_LIMIT]" << std::endl;
+			<< " NUM_TOKENS VOCAB_DIC TEMP_DIR" << std::endl;
 		return 1;
 	}
 
 	if (!ssgnc::tools::parseNumTokens(argv[1], &num_tokens))
 		return 2;
 
-	if (!vocab_dic.open(argv[2], ssgnc::FileMap::READ_FILE))
+	if (!ssgnc::tools::readVocabDic(argv[2], &vocab_dic))
 		return 3;
 
 	ssgnc::FilePath file_path;
 	if (!ssgnc::tools::initFilePath(argv[3], "bin", num_tokens, &file_path))
 		return 4;
 
-	ssgnc::UInt64 mem_limit = 1024ULL << 20;
-	if (argc > 4 && !ssgnc::tools::parseMemLimit(argv[4], &mem_limit))
+	if (!encodeNgrams(&file_path))
 		return 5;
-
-	if (!encodeNgrams(&file_path, mem_limit))
-		return 6;
 
 	return 0;
 }

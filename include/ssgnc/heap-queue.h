@@ -1,7 +1,10 @@
 #ifndef SSGNC_HEAP_QUEUE_H
 #define SSGNC_HEAP_QUEUE_H
 
-#include "common.h"
+#include "int-types.h"
+
+#include <functional>
+#include <vector>
 
 namespace ssgnc {
 
@@ -14,12 +17,12 @@ public:
 
 	void clear() { buf_.clear(); }
 
-	bool push(const T &value) SSGNC_WARN_UNUSED_RESULT;
-	bool pop();
+	void push(const T &value);
+	void pop();
 
-	bool popPush(const T &value);
+	void popPush(const T &value);
 
-	bool top(T *value) const;
+	const T &top() const { return buf_[getRootIndex()]; }
 
 	bool empty() const { return buf_.empty(); }
 	UInt32 size() const { return buf_.size(); }
@@ -27,8 +30,6 @@ public:
 private:
 	std::vector<T> buf_;
 	LessThan less_than_;
-
-	void popPushInside(const T &value);
 
 	static UInt32 getRootIndex() { return 0; }
 	static UInt32 getParentIndex(UInt32 index) { return (index - 1) / 2; }
@@ -40,21 +41,10 @@ private:
 };
 
 template <typename T, typename LessThan>
-bool HeapQueue<T, LessThan>::push(const T &value)
+void HeapQueue<T, LessThan>::push(const T &value)
 {
 	UInt32 index = static_cast<UInt32>(buf_.size());
-
-	try
-	{
-		buf_.resize(buf_.size() + 1);
-	}
-	catch (...)
-	{
-		SSGNC_ERROR << "std::vector<T>::resize() failed: "
-			<< sizeof(T) << " * " << (buf_.size() + 1) << std::endl;
-		return false;
-	}
-
+	buf_.resize(buf_.size() + 1);
 	while (index > getRootIndex())
 	{
 		UInt32 parent_index = getParentIndex(index);
@@ -65,39 +55,18 @@ bool HeapQueue<T, LessThan>::push(const T &value)
 		index = parent_index;
 	}
 	buf_[index] = value;
-	return true;
 }
 
 template <typename T, typename LessThan>
-bool HeapQueue<T, LessThan>::pop()
+void HeapQueue<T, LessThan>::pop()
 {
-	if (buf_.empty())
-	{
-		SSGNC_ERROR << "Empty heap queue" << std::endl;
-		return false;
-	}
-
 	const T &value = buf_.back();
-	popPushInside(value);
+	popPush(value);
 	buf_.pop_back();
-	return true;
 }
 
 template <typename T, typename LessThan>
-bool HeapQueue<T, LessThan>::popPush(const T &value)
-{
-	if (buf_.empty())
-	{
-		SSGNC_ERROR << "Empty heap queue" << std::endl;
-		return false;
-	}
-
-	popPushInside(value);
-	return true;
-}
-
-template <typename T, typename LessThan>
-void HeapQueue<T, LessThan>::popPushInside(const T &value)
+void HeapQueue<T, LessThan>::popPush(const T &value)
 {
 	UInt32 index = getRootIndex();
 	for ( ; ; )
@@ -117,19 +86,6 @@ void HeapQueue<T, LessThan>::popPushInside(const T &value)
 		index = child_index;
 	}
 	buf_[index] = value;
-}
-
-template <typename T, typename LessThan>
-bool HeapQueue<T, LessThan>::top(T *value) const
-{
-	if (buf_.empty())
-	{
-		SSGNC_ERROR << "Empty heap queue" << std::endl;
-		return false;
-	}
-
-	*value = buf_[getRootIndex()];
-	return true;
 }
 
 }  // namespace ssgnc

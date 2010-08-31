@@ -2,85 +2,108 @@
 
 namespace {
 
+struct FilePos
+{
+	ssgnc::Int16 file_id;
+	ssgnc::UInt16 offset_lo;
+	ssgnc::UInt16 offset_hi;
+};
+
 ssgnc::Int32 num_tokens;
 ssgnc::VocabDic vocab_dic;
 
 bool readNgram(ssgnc::ByteReader *byte_reader, ssgnc::Int16 *freq,
 	ssgnc::StringBuilder *ngram_buf)
 {
-	if (!ssgnc::tools::readFreq(byte_reader, ngram_buf, freq))
-	{
-		if (byte_reader->bad())
-			SSGNC_ERROR << "ssgnc::tools::readFreq() failed" << std::endl;
-		return false;
-	}
+	ngram_buf->clear();
 
-	if (*freq == 0)
+	ssgnc::Int32 byte;
+	ssgnc::Int32 temp_freq = 0;
+	while ((byte = byte_reader->read()) >= 0)
+	{
+		ngram_buf->append(static_cast<ssgnc::Int8>(byte));
+
+		temp_freq = (temp_freq << 7) + (byte & 0x7F);
+		if (temp_freq > ssgnc::FreqHandler::MAX_ENCODED_FREQ)
+		{
+			ERROR << "out of range freq: " << temp_freq << std::endl;
+			return false;
+		}
+		else if (byte < 0x80)
+			break;
+	}
+	*freq = static_cast<ssgnc::Int16>(temp_freq);
+
+	if (byte < 0)
+		return false;
+	else if (*freq == 0)
 		return true;
 
-	if (!ssgnc::tools::readTokens(num_tokens, vocab_dic,
-		byte_reader, ngram_buf, NULL))
+	ssgnc::Int32 token = 0;
+	ssgnc::Int32 token_count = 0;
+	while ((byte = byte_reader->read()) >= 0)
 	{
-		SSGNC_ERROR << "ssgnc::tools::readTokens() failed" << std::endl;
-		return false;
+		ngram_buf->append(static_cast<ssgnc::Int8>(byte));
+
+		token = (token << 7) + (byte & 0x7F);
+		if (byte < 0x80)
+		{
+			if (static_cast<ssgnc::UInt32>(token) >= vocab_dic.num_keys())
+			{
+				ERROR << "unknown token: " << token << std::endl;
+				return false;
+			}
+			token = 0;
+
+			if (++token_count == num_tokens)
+				return true;
+		}
 	}
 
-	return true;
+	return false;
 }
 
 bool openNextFile(ssgnc::FilePath *file_path, std::ofstream *file)
 {
-	if (file_path->tell() != 0)
+	if (file_path->file_id() != -1)
 	{
 		if (!file->flush())
 		{
-			SSGNC_ERROR << "std::ofstream::flush() failed" << std::endl;
+			ERROR << "failed to write ngrams" << std::endl;
 			return false;
 		}
 		file->close();
 	}
 
-	ssgnc::StringBuilder path;
-	if (!file_path->read(&path))
+	if (!file_path->next())
 	{
-		SSGNC_ERROR << "ssgnc::FilePath::read() failed" << std::endl;
+		ERROR << "failed to generate file path" << std::endl;
 		return false;
 	}
 
-	if (file->is_open())
-		file->close();
-
-	file->open(path.ptr(), std::ios::binary);
+	file->open(file_path->path().ptr(), std::ios::binary);
 	if (!*file)
 	{
-		SSGNC_ERROR << "std::ofstream::open() failed: "
-			<< path.str() << std::endl;
+		ERROR << "failed to open file: " << file_path->path() << std::endl;
 		return false;
 	}
 
 	return true;
 }
 
-bool writeNgramOffset(ssgnc::Int32 file_id, ssgnc::UInt32 offset)
+bool writeFilePos(ssgnc::Int32 file_id, ssgnc::UInt32 offset)
 {
-	ssgnc::NgramIndex::FileEntry entries;
+	FilePos file_pos;
 
-	if (!entries.set_file_id(file_id))
-	{
-		SSGNC_ERROR << "ssgnc::NgramIndex::FileEntry::set_file_id() failed: "
-			<< file_id << std::endl;
-		return false;
-	}
-	if (!entries.set_offset(offset))
-	{
-		SSGNC_ERROR << "ssgnc::NgramIndex::FileEntry::set_offset() failed: "
-			<< offset << std::endl;
-		return false;
-	}
+	file_pos.file_id = static_cast<ssgnc::Int16>(file_id);
+	file_pos.offset_lo = static_cast<ssgnc::UInt16>(offset & 0xFFFF);
+	file_pos.offset_hi = static_cast<ssgnc::UInt16>(offset >> 16);
 
-	if (!ssgnc::Writer(&std::cout).write(entries))
+	std::cout.write(reinterpret_cast<const char *>(&file_pos),
+		sizeof(file_pos));
+	if (!std::cout)
 	{
-		SSGNC_ERROR << "ssgnc::Writer::write() failed" << std::endl;
+		ERROR << "failed to write index" << std::endl;
 		return false;
 	}
 
@@ -94,21 +117,14 @@ bool splitDatabase(ssgnc::FilePath *file_path)
 	std::ofstream file;
 
 	ssgnc::ByteReader byte_reader;
-	if (!byte_reader.open(&std::cin))
-	{
-		SSGNC_ERROR << "ssgnc::ByteReader::open() failed" << std::endl;
-		return false;
-	}
+	byte_reader.open(&std::cin);
 
 	ssgnc::UInt64 num_ngrams = 0;
 	ssgnc::UInt32 file_size = MAX_FILE_SIZE + 1;
 	ssgnc::UInt64 total_size = 0;
 
-	if (!writeNgramOffset(0, 0))
-	{
-		SSGNC_ERROR << "writeNgramOffset() failed" << std::endl;
+	if (!writeFilePos(0, 0))
 		return false;
-	}
 
 	ssgnc::Int16 freq;
 	ssgnc::StringBuilder ngram_buf;
@@ -116,17 +132,14 @@ bool splitDatabase(ssgnc::FilePath *file_path)
 	{
 		if (file_size + ngram_buf.length() > MAX_FILE_SIZE)
 		{
-			if (file_path->tell() != 0)
+			if (file_path->file_id() != -1)
 			{
-				std::cerr << "File ID: " << (file_path->tell() - 1)
+				std::cerr << "File ID: " << file_path->file_id()
 					<< ", File size: " << file_size << std::endl;
 			}
 
 			if (!openNextFile(file_path, &file))
-			{
-				SSGNC_ERROR << "openNextFile() failed" << std::endl;
 				return false;
-			}
 			file_size = 0;
 		}
 
@@ -135,20 +148,12 @@ bool splitDatabase(ssgnc::FilePath *file_path)
 			file.put('\0');
 			++file_size;
 
-			if (!writeNgramOffset(file_path->tell() - 1, file_size))
-			{
-				SSGNC_ERROR << "writeNgramOffset() failed" << std::endl;
+			if (!writeFilePos(file_path->file_id(), file_size))
 				return false;
-			}
 			continue;
 		}
 
-		file << ngram_buf;
-		if (!file)
-		{
-			SSGNC_ERROR << "std::ofstream::operator<<() failed" << std::endl;
-		}
-
+		file << ngram_buf.str();
 		file_size += ngram_buf.length();
 		total_size += ngram_buf.length();
 
@@ -157,27 +162,22 @@ bool splitDatabase(ssgnc::FilePath *file_path)
 
 	if (!file.flush())
 	{
-		SSGNC_ERROR << "std::ofstream::flush() failed" << std::endl;
+		ERROR << "failed to write ngrams" << std::endl;
 		return false;
 	}
 	else if (!std::cout.flush())
 	{
-		SSGNC_ERROR << "std::ostream::flush() failed" << std::endl;
+		ERROR << "failed to write index" << std::endl;
 		return false;
 	}
 
-	if (byte_reader.bad())
+	if (byte_reader.read() >= 0 || !byte_reader.eof())
 	{
-		SSGNC_ERROR << "readNgram() failed" << std::endl;
-		return false;
-	}
-	else if (!byte_reader.eof())
-	{
-		SSGNC_ERROR << "Extra bytes" << std::endl;
+		ERROR << "extra bytes" << std::endl;
 		return false;
 	}
 
-	std::cerr << "File ID: " << (file_path->tell() - 1)
+	std::cerr << "File ID: " << file_path->file_id()
 		<< ", File size: " << file_size << std::endl;
 
 	std::cerr << "No. ngrams: " << num_ngrams
@@ -195,14 +195,15 @@ int main(int argc, char *argv[])
 	if (argc != 4)
 	{
 		std::cerr << "Usage: " << argv[0]
-			<< " NUM_TOKENS VOCAB_DIC INDEX_DIR" << std::endl;
+			<< " NUM_TOKENS VOCAB_DIC OUTPUT_DIR" << std::endl;
 		return 1;
 	}
 
 	if (!ssgnc::tools::parseNumTokens(argv[1], &num_tokens))
 		return 2;
 
-	if (!vocab_dic.open(argv[2]))
+	ssgnc::FileMap file_map;
+	if (!ssgnc::tools::mmapVocabDic(argv[2], &file_map, &vocab_dic))
 		return 3;
 
 	ssgnc::FilePath file_path;

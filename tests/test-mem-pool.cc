@@ -1,7 +1,9 @@
 #include "ssgnc.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <ctime>
+#include <vector>
 
 int main()
 {
@@ -35,8 +37,7 @@ int main()
 		ssgnc::UInt32 length = std::rand() % (BUF_SIZE - pos);
 
 		ssgnc::String str(buf + pos, length);
-		ssgnc::String str_copy;
-		assert(mem_pool.append(str, &str_copy));
+		ssgnc::String str_copy = mem_pool.clone(str);
 
 		assert(str == str_copy);
 		assert(str.ptr() != str_copy.ptr());

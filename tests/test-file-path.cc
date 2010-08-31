@@ -6,37 +6,34 @@ int main()
 {
 	ssgnc::FilePath file_path;
 
-	assert(file_path.dirname() == "");
-	assert(file_path.basename() == "");
-	assert(file_path.tell() == 0);
+	assert(file_path.format() == "");
+	assert(file_path.path() == "");
+	assert(file_path.file_id() == -1);
 
-	assert(file_path.open(".", "prefix-%04d.ext"));
+	file_path.set_format("prefix-%04d.ext");
 
-	assert(file_path.dirname() == ".");
-	assert(file_path.basename() == "prefix-%04d.ext");
-	assert(file_path.tell() == 0);
+	assert(file_path.format() == "prefix-%04d.ext");
+	assert(file_path.path() == "");
+	assert(file_path.file_id() == -1);
 
-	ssgnc::StringBuilder path;
+	assert(file_path.next());
 
-	assert(file_path.read(&path));
-	assert(path.str() == "./prefix-0000.ext");
+	assert(file_path.format() == "prefix-%04d.ext");
 
-	assert(file_path.dirname() == ".");
-	assert(file_path.basename() == "prefix-%04d.ext");
-	assert(file_path.tell() == 1);
+	assert(file_path.path() == "prefix-0000.ext");
+	assert(file_path.file_id() == 0);
 
-	assert(file_path.read(&path));
-	assert(path.str() == "./prefix-0001.ext");
+	assert(file_path.next());
 
-	assert(file_path.dirname() == ".");
-	assert(file_path.basename() == "prefix-%04d.ext");
-	assert(file_path.tell() == 2);
+	assert(file_path.format() == "prefix-%04d.ext");
+	assert(file_path.path() == "prefix-0001.ext");
+	assert(file_path.file_id() == 1);
 
-	file_path.close();
+	file_path.clear();
 
-	assert(file_path.dirname() == "");
-	assert(file_path.basename() == "");
-	assert(file_path.tell() == 0);
+	assert(file_path.format() == "prefix-%04d.ext");
+	assert(file_path.path() == "");
+	assert(file_path.file_id() == -1);
 
 	return 0;
 }

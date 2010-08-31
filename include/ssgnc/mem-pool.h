@@ -3,6 +3,8 @@
 
 #include "string.h"
 
+#include <vector>
+
 namespace ssgnc {
 
 class MemPool
@@ -17,16 +19,14 @@ public:
 
 	void clear();
 
-	bool get(UInt32 index, const Int8 **ptr) const SSGNC_WARN_UNUSED_RESULT;
-	bool get(UInt32 index, UInt32 length, String *str) const
-		SSGNC_WARN_UNUSED_RESULT;
+	const Int8 *operator[](UInt32 index) const { return get(index); }
+	const Int8 *get(UInt32 index) const;
+	const String get(UInt32 index, UInt32 length) const
+	{ return String(get(index), length); }
 
-	bool append(const String &obj, String *clone) SSGNC_WARN_UNUSED_RESULT
-	{ return append(obj, clone, NULL); }
-	bool append(const String &obj, UInt32 *index) SSGNC_WARN_UNUSED_RESULT
-	{ return append(obj, NULL, index); }
-	bool append(const String &obj, String *clone, UInt32 *index)
-		SSGNC_WARN_UNUSED_RESULT;
+	UInt32 append(const String &obj);
+	String clone(const String &obj)
+	{ return String(get(append(obj)), obj.length()); }
 
 	enum { DEFAULT_CHUNK_SIZE = 4096 };
 
@@ -43,40 +43,60 @@ private:
 	MemPool &operator=(const MemPool &);
 };
 
-inline bool MemPool::get(UInt32 index, const Int8 **ptr) const
-{
-	UInt32 chunk_id = index / DEFAULT_CHUNK_SIZE;
-	if (chunk_id >= static_cast<UInt32>(chunks_.size()))
-	{
-		SSGNC_ERROR << "Too large index: " << index << std::endl;
-		return false;
-	}
-	else if (ptr == NULL)
-	{
-		SSGNC_ERROR << "Null pointer" << std::endl;
-		return false;
-	}
+inline MemPool::MemPool() : chunks_(), ptr_(NULL), avail_(0),
+	num_objs_(0), total_length_(0), total_size_(0) {}
 
-	*ptr = chunks_[chunk_id] + (index % DEFAULT_CHUNK_SIZE);
-	return true;
+inline void MemPool::clear()
+{
+	for (std::size_t i = 0; i < chunks_.size(); ++i)
+	{
+		if (chunks_[i] != NULL)
+		{
+			delete [] chunks_[i];
+			chunks_[i] = NULL;
+		}
+	}
+	chunks_.clear();
+	ptr_ = NULL;
+	avail_ = 0;
+	num_objs_ = 0;
+	total_length_ = 0;
+	total_size_ = 0;
 }
 
-inline bool MemPool::get(UInt32 index, UInt32 length, String *str) const
+inline const Int8 *MemPool::get(UInt32 index) const
 {
-	UInt32 chunk_id = index / DEFAULT_CHUNK_SIZE;
-	if (chunk_id >= static_cast<UInt32>(chunks_.size()))
+	return chunks_[index / DEFAULT_CHUNK_SIZE]
+		+ (index % DEFAULT_CHUNK_SIZE);
+}
+
+inline UInt32 MemPool::append(const String &obj)
+{
+	if (obj.length() > avail_)
 	{
-		SSGNC_ERROR << "Too large index: " << index << std::endl;
-		return false;
-	}
-	else if (str == NULL)
-	{
-		SSGNC_ERROR << "Null pointer" << std::endl;
-		return false;
+		UInt32 new_chunk_size = (obj.length() <= DEFAULT_CHUNK_SIZE)
+			? DEFAULT_CHUNK_SIZE : obj.length();
+
+		chunks_.resize(chunks_.size() + 1);
+		Int8 *new_chunk = new Int8[new_chunk_size];
+		chunks_.back() = new_chunk;
+
+		ptr_ = new_chunk;
+		avail_ = new_chunk_size;
+		total_size_ += new_chunk_size;
 	}
 
-	*str = String(chunks_[chunk_id] + (index % DEFAULT_CHUNK_SIZE), length);
-	return true;
+	UInt32 index = DEFAULT_CHUNK_SIZE * (chunks_.size() - 1);
+	if (avail_ < DEFAULT_CHUNK_SIZE)
+		index += DEFAULT_CHUNK_SIZE - avail_;
+
+	for (UInt32 i = 0; i < obj.length(); ++i)
+		*ptr_++ = obj[i];
+	avail_ -= obj.length();
+
+	++num_objs_;
+	total_length_ += obj.length();
+	return index;
 }
 
 }  // namespace ssgnc

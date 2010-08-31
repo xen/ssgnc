@@ -4,6 +4,8 @@
 #include <cstring>
 #include <sstream>
 
+#include <iostream>
+
 int main()
 {
 	const char *src = "This is a pen.";
@@ -15,14 +17,13 @@ int main()
 	assert(str == "This is a pen.");
 	assert(str != "This is a pen. EX");
 
-	ssgnc::UInt32 pos;
-	assert(str.first(' ', &pos));
-	assert(pos == 4);
-	assert(!str.first('X', &pos));
+	assert(str.first(' ').ptr() == src + 4);
+	assert(str.first(' ').length() == 1);
+	assert(str.first('X') == "");
 
-	assert(str.last(' ', &pos));
-	assert(pos == 9);
-	assert(!str.last('X', &pos));
+	assert(str.last(' ').ptr() == src + 9);
+	assert(str.last(' ').length() == 1);
+	assert(str.last('X') == "");
 
 	assert(str.substr(3) == "s is a pen.");
 	assert(str.substr(5, 4) == "is a");

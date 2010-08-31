@@ -1,22 +1,11 @@
 #! /bin/sh
 
-ShowUsage()
-{
-	echo "Usage: DATA_DIR INDEX_DIR [TEMP_DIR] [CHECKER]"
-	echo
-	echo "DATA_DIR: DATA_DIR/Ngms/Ngm-KKKK [.gz, .xz]"
-	echo "INDEX_DIR: INDEX_DIR/vocab.dic, ngms.idx, Ngm-KKKK.db"
-	echo "TEMP_DIR: TEMP_DIR/Ngm-KKKK.bin, Ngm-KKKK.part, Ngms.idx"
-	echo "CHECKER: time, valgrind"
-	echo "  time: time -f 'real %E, user %U, sys %S'"
-	echo "  valgrind: valgrind --leak-check=full"
-}
-
 CheckCommands()
 {
 	for cmd in $@
 	do
-		if [ ! `which "$cmd"` ]
+		which "$cmd"
+		if [ $? -ne 0 ]
 		then
 			echo "Error: $cmd: No such command"
 			echo
@@ -52,6 +41,8 @@ ChooseFilter()
 
 BuildVocabDic()
 {
+	echo "Building VOCAB_DIC: $INDEX_DIR/vocab.dic"
+
 	if [ ! -d "$DATA_DIR/1gms" ]
 	then
 		echo "Error: $DATA_DIR/1gms: No such directory"
@@ -65,10 +56,9 @@ BuildVocabDic()
 		exit 301
 	fi
 
-	echo
 	echo "ssgnc-vocab-dic-build"
 	$filter "$DATA_DIR"/1gms/1gm-* | \
-		$checker ssgnc-vocab-dic-build "$INDEX_DIR/vocab.dic"
+		ssgnc-vocab-dic-build > "$INDEX_DIR/vocab.dic"
 	if [ $? -ne 0 ]
 	then
 		exit 302
@@ -86,9 +76,6 @@ BuildIndex()
 
 	input_dir="$DATA_DIR/$num_tokens""gms"
 
-	echo
-	echo "INPUT_DIR: $input_dir"
-
 	filter=`ChooseFilter "$input_dir/$num_tokens""gm-0000"`
 	if [ $? -ne 0 ]
 	then
@@ -96,34 +83,26 @@ BuildIndex()
 		exit 401
 	fi
 
-	echo
 	echo "ssgnc-ngms-encode"
 	$filter "$input_dir/$num_tokens""gm-"* | \
-		$checker ssgnc-ngms-encode \
-		$num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR"
+		ssgnc-ngms-encode $num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR"
 	if [ $? -ne 0 ]
 	then
 		exit 402
 	fi
 
-	echo
 	echo "ssgnc-ngms-merge | ssgnc-ngms-split"
-	$checker ssgnc-ngms-merge \
-		$num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR" | \
-		$checker ssgnc-ngms-split \
-		$num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR"
+	ssgnc-ngms-merge $num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR" | \
+		ssgnc-ngms-split $num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR"
 	if [ $? -ne 0 ]
 	then
 		exit 403
 	fi
 
-	echo
 	echo "ssgnc-db-merge | ssgnc-db-split"
-	$checker ssgnc-db-merge \
-		$num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR" | \
-		$checker ssgnc-db-split \
-		$num_tokens "$INDEX_DIR/vocab.dic" "$INDEX_DIR" \
-		> "$TEMP_DIR/$num_tokens""gms.idx"
+	ssgnc-db-merge $num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR" | \
+		ssgnc-db-split $num_tokens "$INDEX_DIR/vocab.dic" "$INDEX_DIR" \
+			> "$TEMP_DIR/$num_tokens""gms.idx"
 	if [ $? -ne 0 ]
 	then
 		exit 404
@@ -144,10 +123,9 @@ BuildIndices()
 		num_tokens=`expr $num_tokens + 1`
 	done
 
-	echo
 	echo "ssgnc-idx-merge"
-	$checker ssgnc-idx-merge \
-		"$INDEX_DIR/vocab.dic" "$TEMP_DIR" > "$INDEX_DIR/ngms.idx"
+	ssgnc-idx-merge "$INDEX_DIR/vocab.dic" "$TEMP_DIR" \
+		> "$INDEX_DIR/ngms.idx"
 	if [ $? -ne 0 ]
 	then
 		exit 500
@@ -164,75 +142,51 @@ then
 	exit $?
 fi
 
-if [ $# -lt 2 -o $# -gt 4 ]
+if [ $# -lt 2 -o $# -gt 3 ]
 then
-	ShowUsage
+	echo "Usage: DATA_DIR INDEX_DIR [TEMP_DIR]"
 	exit 1
 fi
 
 DATA_DIR="$1"
 INDEX_DIR="$2"
 TEMP_DIR="$2"
-CHECKER=""
 if [ $# -gt 2 ]
 then
 	TEMP_DIR="$3"
 fi
 
-if [ $# -gt 3 ]
-then
-	if [ "$4" = "time" ]
-	then
-		checker="time -p"
-	elif [ "$4" = "valgrind" ]
-	then
-		checker="valgrind --leak-check=full"
-	else
-		echo "Invalid CHECKER option: $4"
-		echo
-		ShowUsage
-		exit 2
-	fi
-fi
-
 echo "DATA_DIR: $DATA_DIR"
 echo "INDEX_DIR: $INDEX_DIR"
 echo "TEMP_DIR: $TEMP_DIR"
-echo "CHECKER: $CHECKER"
 
 if [ ! -d "$DATA_DIR" ]
 then
-	echo
 	echo "Error: $DATA_DIR: No such directory"
-
-	exit 3
+	exit 2
 fi
 
 if [ ! -d "$INDEX_DIR" ]
 then
-	echo
 	echo "Warning: $INDEX_DIR: No such directory"
 	echo "Making INDEX_DIR: $INDEX_DIR"
-
 	mkdir "$INDEX_DIR"
 	if [ $? -ne 0 ]
 	then
-		exit 4
+		exit 3
 	fi
 fi
 
 EXISTS_TEMP_DIR="TRUE"
 if [ ! -d "$TEMP_DIR" ]
 then
-	echo
 	echo "Warning: $TEMP_DIR: No such directory"
 	echo "Making TEMP_DIR: $TEMP_DIR"
-
 	EXISTS_TEMP_DIR="FALSE"
 	mkdir "$TEMP_DIR"
 	if [ $? -ne 0 ]
 	then
-		exit 5
+		exit 4
 	fi
 fi
 
@@ -246,9 +200,7 @@ fi
 
 if [ "$EXISTS_TEMP_DIR" = "FALSE" ]
 then
-	echo
 	echo "Removing TEMP_DIR: $TEMP_DIR"
-
 	rm -rf "$TEMP_DIR"
 fi
 

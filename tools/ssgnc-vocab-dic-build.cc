@@ -1,6 +1,7 @@
 #include "tools-common.h"
 
 #include <algorithm>
+#include <string>
 
 namespace {
 
@@ -10,21 +11,13 @@ ssgnc::FreqHandler freq_handler;
 class KeyFreqPair
 {
 public:
-	KeyFreqPair(ssgnc::UInt32 index, ssgnc::UInt32 length, ssgnc::Int16 freq)
-		: index_(index), length_(static_cast<ssgnc::UInt16>(length)),
-		freq_(freq) {}
+	KeyFreqPair(const ssgnc::String &key, long long freq)
+		: index_(key_pool.append(key)),
+		length_(static_cast<ssgnc::UInt16>(key.length())),
+		freq_(freq_handler.encode(static_cast<ssgnc::Int64>(freq))) {}
 
 	ssgnc::String key() const
-	{
-		ssgnc::String str;
-		if (!key_pool.get(index_, length_, &str))
-		{
-			SSGNC_ERROR << "ssgnc::MemPool::get() failed: "
-				<< index_ << ", " << length_ << std::endl;
-			exit(10);
-		}
-		return str;
-	}
+	{ return ssgnc::String(key_pool.get(index_), length_); }
 	ssgnc::Int16 freq() const { return freq_; }
 
 private:
@@ -46,70 +39,49 @@ public:
 
 bool readKeyFreqPairs(std::vector<KeyFreqPair> *key_freq_pairs)
 {
+	std::cerr << "reading..." << std::endl;
+
 	std::string line;
-	while (ssgnc::tools::readLine(&std::cin, &line))
+	while (std::getline(std::cin, line))
 	{
 		if (line.find_first_of(' ') != std::string::npos)
 		{
-			SSGNC_ERROR << "Wrong delimitor: " << line << std::endl;
+			ERROR << "invalid format: " << line << std::endl;
 			return false;
 		}
 
-		std::string::size_type delim_pos = line.find_last_of('\t');
-		if (delim_pos == std::string::npos)
+		std::string::size_type pos = line.find_last_of('\t');
+		if (pos == std::string::npos)
 		{
-			SSGNC_ERROR << "No delimitor: " << line << std::endl;
+			ERROR << "invalid format: " << line << std::endl;
 			return false;
 		}
 
-		const ssgnc::Int8 *freq_str = line.c_str() + delim_pos + 1;
-		ssgnc::Int64 freq;
-		if (!ssgnc::tools::parseInt64(freq_str, &freq))
+		const char *freq_str = line.c_str() + pos + 1;
+		char *end_of_freq;
+		long long freq = std::strtoll(freq_str, &end_of_freq, 10);
+		if (*end_of_freq != '\0')
 		{
-			SSGNC_ERROR << "ssgnc::tools::parseInt64() failed: "
-				<< freq_str << std::endl;
+			ERROR << "invalid freq: " << line << std::endl;
+			return false;
+		}
+		else if (freq <= 0 || freq > ssgnc::FreqHandler::MAX_FREQ)
+		{
+			ERROR << "out of range freq: " << freq << std::endl;
 			return false;
 		}
 
-		ssgnc::String key(line.c_str(), delim_pos);
-		ssgnc::UInt32 index;
-		if (!key_pool.append(key, &index))
-		{
-			SSGNC_ERROR << "ssgnc::MemPool::append() failed: "
-				<< key << std::endl;
-			return false;
-		}
-
-		ssgnc::Int16 encoded_freq;
-		if (!freq_handler.encode(freq, &encoded_freq))
-		{
-			SSGNC_ERROR << "ssgnc::FreqHandler::encode() failed: "
-				<< freq << std::endl;
-			return false;
-		}
-
-		try
-		{
-			key_freq_pairs->push_back(KeyFreqPair(
-				index, key.length(), encoded_freq));
-		}
-		catch (...)
-		{
-			SSGNC_ERROR << "std::vector<KeyFreqPair>::push_back() failed: "
-				<< key_freq_pairs->size() << std::endl;
-			return false;
-		}
+		ssgnc::String key(line.c_str(), pos);
+		key_freq_pairs->push_back(KeyFreqPair(key, freq));
 
 		if (key_freq_pairs->size() % 100000 == 0)
 			std::cerr << "\rNo. keys: " << key_freq_pairs->size();
 	}
-	if (std::cin.bad())
-		return false;
 	std::cerr << "\rNo. keys: " << key_freq_pairs->size() << std::endl;
 
-	if (key_freq_pairs->empty())
+	if (key_freq_pairs->size() == 0)
 	{
-		SSGNC_ERROR << "No input" << std::endl;
+		ERROR << "no input: " << std::endl;
 		return false;
 	}
 
@@ -119,35 +91,49 @@ bool readKeyFreqPairs(std::vector<KeyFreqPair> *key_freq_pairs)
 bool sortKeys(std::vector<KeyFreqPair> *key_freq_pairs,
 	std::vector<ssgnc::String> *keys)
 {
+	std::cerr << "sorting..." << std::endl;
+
 	std::sort(key_freq_pairs->begin(), key_freq_pairs->end(),
 		FreqOrderComparer());
-	try
-	{
-		keys->resize(key_freq_pairs->size());
-	}
-	catch (...)
-	{
-		SSGNC_ERROR << "std::vector<ssgnc::String>::resize() failed: "
-			<< key_freq_pairs->size() << std::endl;
-		return false;
-	}
 
+	keys->resize(key_freq_pairs->size());
 	for (std::size_t i = 0; i < keys->size(); ++i)
 		(*keys)[i] = (*key_freq_pairs)[i].key();
 
 	std::vector<KeyFreqPair>().swap(*key_freq_pairs);
+
 	return true;
 }
 
-bool buildVocabDic(const ssgnc::Int8 *path,
-	const std::vector<ssgnc::String> &keys, ssgnc::VocabDic *vocab_dic)
+bool buildVocabDic(const std::vector<ssgnc::String> &keys,
+	ssgnc::VocabDic *vocab_dic)
 {
-	if (!ssgnc::VocabDic::build(path, keys))
+	std::cerr << "building..." << std::endl;
+
+	if (!vocab_dic->build(&keys[0], keys.size()))
 	{
-		SSGNC_ERROR << "ssgnc::VocabDic::build() failed: "
-			<< path << ", " << keys.size() << std::endl;
+		ERROR << "failed to build dictionary" << std::endl;
 		return false;
 	}
+	std::cerr << "Total size: " << vocab_dic->total_size() << std::endl;
+	return true;
+}
+
+bool writeVocabDic(const ssgnc::VocabDic &vocab_dic)
+{
+	std::cerr << "writing..." << std::endl;
+
+	if (!vocab_dic.write(&std::cout))
+	{
+		ERROR << "failed to write dictionary" << std::endl;
+		return false;
+	}
+	else if (!std::cout.flush())
+	{
+		ERROR << "failed to flush output stream" << std::endl;
+		return false;
+	}
+
 	return true;
 }
 
@@ -157,9 +143,9 @@ int main(int argc, char *argv[])
 {
 	ssgnc::tools::initIO();
 
-	if (argc != 2)
+	if (argc != 1)
 	{
-		std::cerr << "Usage: " << argv[0] << " VOCAB_DIC" << std::endl;
+		std::cerr << "Usage: " << argv[0] << std::endl;
 		return 1;
 	}
 
@@ -172,8 +158,11 @@ int main(int argc, char *argv[])
 		return 3;
 
 	ssgnc::VocabDic vocab_dic;
-	if (!buildVocabDic(argv[1], keys, &vocab_dic))
+	if (!buildVocabDic(keys, &vocab_dic))
 		return 4;
+
+	if (!writeVocabDic(vocab_dic))
+		return 5;
 
 	return 0;
 }

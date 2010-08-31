@@ -71,12 +71,7 @@ AR = ar
 ARFLAGS = cru
 libssgnc_a_AR = $(AR) $(ARFLAGS)
 libssgnc_a_LIBADD =
-am_libssgnc_a_OBJECTS = agent.$(OBJEXT) byte-reader.$(OBJEXT) \
-	common.$(OBJEXT) database.$(OBJEXT) file-map.$(OBJEXT) \
-	file-path.$(OBJEXT) mapper.$(OBJEXT) mem-pool.$(OBJEXT) \
-	ngram-index.$(OBJEXT) ngram-reader.$(OBJEXT) query.$(OBJEXT) \
-	reader.$(OBJEXT) string-builder.$(OBJEXT) vocab-dic.$(OBJEXT) \
-	writer.$(OBJEXT)
+am_libssgnc_a_OBJECTS = file-map.$(OBJEXT) vocab-dic.$(OBJEXT)
 libssgnc_a_OBJECTS = $(am_libssgnc_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -187,46 +182,25 @@ top_srcdir = @top_srcdir@
 AM_CXXFLAGS = -Wall -Weffc++ -I../include
 lib_LIBRARIES = libssgnc.a
 libssgnc_a_SOURCES = \
-	agent.cc \
-	byte-reader.cc \
-	common.cc \
-	database.cc \
 	file-map.cc \
-	file-path.cc \
-	mapper.cc \
-	mem-pool.cc \
-	ngram-index.cc \
-	ngram-reader.cc \
-	query.cc \
-	reader.cc \
-	string-builder.cc \
-	vocab-dic.cc \
-	writer.cc
+	vocab-dic.cc
 
 include_HEADERS = \
 	../include/ssgnc.h
 
-libssgnc_a_includedir = $(includedir)/ssgnc
+libssgnc_a_includedir = $(includedir)/wc
 libssgnc_a_include_HEADERS = \
-	../include/ssgnc/agent.h \
 	../include/ssgnc/byte-reader.h \
-	../include/ssgnc/common.h \
-	../include/ssgnc/database.h \
 	../include/ssgnc/file-map.h \
 	../include/ssgnc/file-path.h \
 	../include/ssgnc/freq-handler.h \
 	../include/ssgnc/heap-queue.h \
-	../include/ssgnc/mapper.h \
+	../include/ssgnc/int-types.h \
 	../include/ssgnc/mem-pool.h \
-	../include/ssgnc/ngram-index.h \
-	../include/ssgnc/ngram-reader.h \
-	../include/ssgnc/query.h \
-	../include/ssgnc/reader.h \
 	../include/ssgnc/string.h \
 	../include/ssgnc/string-builder.h \
 	../include/ssgnc/string-hash.h \
-	../include/ssgnc/vocab-dic.h \
-	../include/ssgnc/writer.h
+	../include/ssgnc/vocab-dic.h
 
 all: all-am
 
@@ -305,21 +279,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/agent.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/byte-reader.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/common.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/database.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file-map.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file-path.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mapper.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mem-pool.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ngram-index.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ngram-reader.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/query.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reader.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/string-builder.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vocab-dic.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/writer.Po@am__quote@
 
 .cc.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

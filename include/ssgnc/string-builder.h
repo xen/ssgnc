@@ -8,11 +8,10 @@ namespace ssgnc {
 class StringBuilder
 {
 public:
-	StringBuilder() : initial_buf_(), buf_(initial_buf_),
-		length_(0), size_(sizeof(initial_buf_)) {}
+	StringBuilder();
 	~StringBuilder();
 
-	void clear() { length_ = 0; }
+	void clear();
 
 	Int8 &operator[](UInt32 index) { return buf_[index]; }
 	const Int8 &operator[](UInt32 index) const { return buf_[index]; }
@@ -24,15 +23,15 @@ public:
 	const Int8 *ptr() const { return buf_; }
 	String str() const { return String(buf_, length_); }
 
-	bool empty() const { return length_ == 0; }
+	StringBuilder &operator=(const String &str) { return assign(str); }
 
-	bool append() SSGNC_WARN_UNUSED_RESULT;
-	bool append(Int8 byte) SSGNC_WARN_UNUSED_RESULT;
-	bool append(const String &str) SSGNC_WARN_UNUSED_RESULT;
+	StringBuilder &assign(const String &str);
 
-	bool appendf(const Int8 *format, ...) SSGNC_WARN_UNUSED_RESULT;
+	void append() { buf_[length_] = '\0'; }
+	void append(Int8 byte);
+	void append(const String &str);
 
-	bool resize(UInt32 length) SSGNC_WARN_UNUSED_RESULT;
+	void resize(UInt32 length);
 
 private:
 	enum { INITIAL_BUF_SIZE = sizeof(Int8 *) };
@@ -42,12 +41,18 @@ private:
 	UInt32 length_;
 	UInt32 size_;
 
-	bool resizeBuf(UInt32 size);
+	void resizeBuf(UInt32 size);
 
 	// Disallows copies.
 	StringBuilder(const StringBuilder &);
 	StringBuilder &operator=(const StringBuilder &);
 };
+
+inline StringBuilder::StringBuilder() : initial_buf_(), buf_(initial_buf_),
+	length_(0), size_(sizeof(initial_buf_))
+{
+	buf_[0] = '\0';
+}
 
 inline StringBuilder::~StringBuilder()
 {
@@ -55,69 +60,59 @@ inline StringBuilder::~StringBuilder()
 		delete [] buf_;
 }
 
-inline bool StringBuilder::append()
+inline void StringBuilder::clear()
 {
-	if (length_ >= size_)
-	{
-		if (!resizeBuf(length_ + 1))
-		{
-			SSGNC_ERROR << "ssgnc::StringBuilder::resizeBuf() failed: "
-				<< (length_ + 1) << std::endl;
-			return false;
-		}
-	}
-	buf_[length_] = '\0';
-	return true;
+	buf_[0] = '\0';
+	length_ = 0;
 }
 
-inline bool StringBuilder::append(Int8 byte)
+inline StringBuilder &StringBuilder::assign(const String &str)
 {
-	if (length_ >= size_)
-	{
-		if (!resizeBuf(length_ + 1))
-		{
-			SSGNC_ERROR << "ssgnc::StringBuilder::resizeBuf() failed: "
-				<< (length_ + 1) << std::endl;
-			return false;
-		}
-	}
+	clear();
+
+	append(str);
+	return *this;
+}
+
+inline void StringBuilder::append(Int8 byte)
+{
+	if (length_ + 1 >= size_)
+		resizeBuf(length_ + 2);
+
 	buf_[length_++] = byte;
-	return true;
 }
 
-inline bool StringBuilder::append(const String &str)
+inline void StringBuilder::append(const String &str)
 {
 	if (length_ + str.length() >= size_)
-	{
-		if (!resizeBuf(length_ + str.length()))
-		{
-			SSGNC_ERROR << "ssgnc::StringBuilder::resizeBuf() failed: "
-				<< (length_ + str.length()) << std::endl;
-			return false;
-		}
-	}
+		resizeBuf(length_ + str.length() + 1);
+
 	for (std::size_t i = 0; i < str.length(); ++i)
 		buf_[length_++] = str[i];
-	return true;
 }
 
-inline bool StringBuilder::resize(UInt32 length)
+inline void StringBuilder::resize(UInt32 length)
 {
 	if (length >= size_)
-	{
-		if (!resizeBuf(length))
-			return false;
-	}
+		resizeBuf(length + 1);
 	length_ = length;
-	return true;
+}
+
+inline void StringBuilder::resizeBuf(UInt32 size)
+{
+	UInt32 new_buf_size = size_;
+	while (new_buf_size < size)
+		new_buf_size *= 2;
+
+	Int8 *new_buf = new Int8[new_buf_size];
+	for (UInt32 i = 0; i < length_; ++i)
+		new_buf[i] = buf_[i];
+	if (buf_ != initial_buf_)
+		delete [] buf_;
+	buf_ = new_buf;
+	size_ = new_buf_size;
 }
 
 }  // namespace ssgnc
-
-inline std::ostream &operator<<(std::ostream &out,
-	const ssgnc::StringBuilder &builder)
-{
-	return out << builder.str();
-}
 
 #endif  // SSGNC_STRING_BUILDER_H

@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <ctime>
+#include <iostream>
 
 int main()
 {
@@ -20,15 +22,13 @@ int main()
 
 	ssgnc::HeapQueue<int> queue;
 	for (std::size_t i = 0; i < values.size(); ++i)
-		assert(queue.push(values[i]));
+		queue.push(values[i]);
 
 	std::vector<int> results;
 	while (!queue.empty())
 	{
-		int value;
-		assert(queue.top(&value));
-		results.push_back(value);
-		assert(queue.pop());
+		results.push_back(queue.top());
+		queue.pop();
 	}
 
 	assert(results.size() == values.size());

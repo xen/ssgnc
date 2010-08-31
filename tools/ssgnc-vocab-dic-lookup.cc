@@ -1,5 +1,7 @@
 #include "tools-common.h"
 
+#include <string>
+
 namespace {
 
 void lookupKeys(std::istream *in, const ssgnc::VocabDic &vocab_dic)
@@ -7,33 +9,26 @@ void lookupKeys(std::istream *in, const ssgnc::VocabDic &vocab_dic)
 	enum { MAX_KEY_ID = 0x7FFFFFFF };
 
 	std::string line;
-	while (ssgnc::tools::readLine(in, &line))
+	while (std::getline(*in, line))
 	{
 		ssgnc::String key(line.c_str(),
 			static_cast<ssgnc::UInt32>(line.length()));
-		std::cout << "vocab_dic[\"" << key << "\"]: ";
-
-		ssgnc::Int32 key_id;
-		if (vocab_dic.find(key, &key_id))
-			std::cout << key_id;
-		else
-			std::cout << "not found";
+		std::cout << "vocab_dic[\"" << key << "\"]: " << vocab_dic[key];
 
 		char *end_of_key_id;
-		long key_id_l = std::strtol(key.ptr(), &end_of_key_id, 10);
+		long key_id = std::strtol(key.ptr(), &end_of_key_id, 10);
 		if (*end_of_key_id == '\0')
 		{
 			std::cout << ", vocab_dic[" << key_id << "]: ";
-			if (key_id_l < 0 || key_id_l > MAX_KEY_ID)
+			if (key_id > MAX_KEY_ID)
 				std::cout << "out of range";
 			else
 			{
-				key_id = static_cast<ssgnc::Int32>(key_id_l);
-				ssgnc::String match;
-				if (vocab_dic.find(key_id, &match))
-					std::cout << match;
-				else
+				ssgnc::String match = vocab_dic[key_id];
+				if (key_id > MAX_KEY_ID || match.empty())
 					std::cout << "out of range";
+				else
+					std::cout << match;
 			}
 		}
 		std::cout << '\n';
@@ -54,8 +49,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	ssgnc::FileMap file_map;
 	ssgnc::VocabDic vocab_dic;
-	if (!vocab_dic.open(argv[1]))
+	if (!ssgnc::tools::mmapVocabDic(argv[1], &file_map, &vocab_dic))
 		return 2;
 
 	if (argc == 2)
@@ -67,8 +63,7 @@ int main(int argc, char *argv[])
 		std::ifstream file(argv[i], std::ios::binary);
 		if (!file)
 		{
-			SSGNC_ERROR << "ssgnc::ifstream::open() failed: "
-				<< argv[i] << std::endl;
+			ERROR << "failed to open file: " << argv[i] << std::endl;
 			continue;
 		}
 		lookupKeys(&file, vocab_dic);

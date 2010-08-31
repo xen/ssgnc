@@ -2,6 +2,9 @@
 
 namespace {
 
+ssgnc::Int32 num_tokens;
+ssgnc::VocabDic vocab_dic;
+
 class HeapUnit
 {
 public:
@@ -26,29 +29,53 @@ public:
 	}
 };
 
-ssgnc::Int32 num_tokens;
-ssgnc::VocabDic vocab_dic;
-
 bool readNgram(HeapUnit *heap_unit)
 {
-	if (!ssgnc::tools::readFreq(&heap_unit->byte_reader, &heap_unit->ngram,
-		&heap_unit->freq))
-	{
-		if (heap_unit->byte_reader.bad())
-			SSGNC_ERROR << "ssgnc::tools::readFreq() failed" << std::endl;
-		return false;
-	}
-	else if (heap_unit->freq == 0)
-		return true;
+	heap_unit->freq = 0;
+	heap_unit->ngram.clear();
 
-	if (!ssgnc::tools::readTokens(num_tokens, vocab_dic,
-		&heap_unit->byte_reader, &heap_unit->ngram, NULL))
+	ssgnc::Int32 byte;
+	ssgnc::Int32 freq = 0;
+	while ((byte = heap_unit->byte_reader.read()) >= 0)
 	{
-		SSGNC_ERROR << "ssgnc::tools::readTokens() failed" << std::endl;
+		heap_unit->ngram.append(static_cast<ssgnc::Int8>(byte));
+
+		freq = (freq << 7) + (byte & 0x7F);
+		if (freq > ssgnc::FreqHandler::MAX_ENCODED_FREQ)
+		{
+			ERROR << "out of range freq: " << freq << std::endl;
+			return false;
+		}
+		else if (byte < 0x80)
+			break;
+	}
+	heap_unit->freq = static_cast<ssgnc::Int16>(freq);
+
+	if (byte < 0)
 		return false;
+
+	ssgnc::Int32 token = 0;
+	ssgnc::Int32 token_count = 0;
+	while ((byte = heap_unit->byte_reader.read()) >= 0)
+	{
+		heap_unit->ngram.append(static_cast<ssgnc::Int8>(byte));
+
+		token = (token << 7) + (byte & 0x7F);
+		if (byte < 0x80)
+		{
+			if (static_cast<ssgnc::UInt32>(token) >= vocab_dic.num_keys())
+			{
+				ERROR << "unknown token: " << token << std::endl;
+				return false;
+			}
+			token = 0;
+
+			if (++token_count == num_tokens)
+				return true;
+		}
 	}
 
-	return true;
+	return false;
 }
 
 bool mergeFiles(std::vector<std::ifstream *> *files)
@@ -63,68 +90,46 @@ bool mergeFiles(std::vector<std::ifstream *> *files)
 
 	for (std::size_t i = 0; i < files->size(); ++i)
 	{
-		if (!heap_units[i].byte_reader.open((*files)[i], BYTE_READER_BUF_SIZE))
-		{
-			SSGNC_ERROR << "ssngc::ByteReader::open() failed: " << std::endl;
-			delete [] heap_units;
-			return false;
-		}
-
+		heap_units[i].byte_reader.open((*files)[i], BYTE_READER_BUF_SIZE);
 		if (!readNgram(&heap_units[i]))
 		{
-			SSGNC_ERROR << "readNgram() failed: " << i << std::endl;
+			ERROR << "no ngrams in file" << std::endl;
 			delete [] heap_units;
 			return false;
 		}
-
-		if (!heap_queue.push(&heap_units[i]))
-		{
-			SSGNC_ERROR << "ssngc::HeapQueue::push() failed: "
-				<< heap_queue.size() << std::endl;
-			delete [] heap_units;
-			return false;
-		}
+		heap_queue.push(&heap_units[i]);
 	}
 
 	while (!heap_queue.empty())
 	{
-		HeapUnit *heap_unit;
-		if (!heap_queue.top(&heap_unit))
-		{
-			SSGNC_ERROR << "ssgnc::HeapQueue<HeapUnit *>::top() failed"
-				<< std::endl;
-			delete [] heap_units;
-			return false;
-		}
+		HeapUnit *heap_unit = heap_queue.top();
 
-		std::cout << heap_unit->ngram;
+		std::cout << heap_unit->ngram.str();
 		if (!std::cout)
 		{
-			SSGNC_ERROR << "std::ostream::operator<<() failed" << std::endl;
+			ERROR << "failed to write ngram" << std::endl;
 			delete [] heap_units;
 			return false;
 		}
 		++num_ngrams;
 		total_size += heap_unit->ngram.length();
 
-		if (!readNgram(heap_unit) && heap_unit->byte_reader.bad())
+		if (readNgram(heap_unit))
+			heap_queue.popPush(heap_unit);
+		else if (!heap_unit->byte_reader.eof())
 		{
-			SSGNC_ERROR << "readNgrams() failed" << std::endl;
 			delete [] heap_units;
 			return false;
 		}
-
-		if (heap_unit->ngram.empty())
-			heap_queue.pop();
 		else
-			heap_queue.popPush(heap_unit);
+			heap_queue.pop();
 	}
 
 	delete [] heap_units;
 
 	if (!std::cout.flush())
 	{
-		SSGNC_ERROR << "std::ostream::flush() failed" << std::endl;
+		ERROR << "failed to flush standard output" << std::endl;
 		return false;
 	}
 
@@ -150,7 +155,8 @@ int main(int argc, char *argv[])
 	if (!ssgnc::tools::parseNumTokens(argv[1], &num_tokens))
 		return 2;
 
-	if (!vocab_dic.open(argv[2]))
+	ssgnc::FileMap file_map;
+	if (!ssgnc::tools::mmapVocabDic(argv[2], &file_map, &vocab_dic))
 		return 3;
 
 	std::vector<std::ifstream *> files;
@@ -161,7 +167,14 @@ int main(int argc, char *argv[])
 	if (!mergeFiles(&files))
 		ret = 5;
 
-	ssgnc::tools::closeFiles(&files);
+	for (std::size_t i = 0; i < files.size(); ++i)
+	{
+		if (files[i] != NULL)
+		{
+			delete files[i];
+			files[i] = NULL;
+		}
+	}
 
 	return ret;
 }

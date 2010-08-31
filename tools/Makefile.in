@@ -33,10 +33,9 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = ssgnc-db-lookup$(EXEEXT) ssgnc-db-merge$(EXEEXT) \
-	ssgnc-db-split$(EXEEXT) ssgnc-idx-merge$(EXEEXT) \
-	ssgnc-ngms-encode$(EXEEXT) ssgnc-ngms-merge$(EXEEXT) \
-	ssgnc-ngms-split$(EXEEXT) ssgnc-search$(EXEEXT) \
+bin_PROGRAMS = ssgnc-db-merge$(EXEEXT) ssgnc-db-split$(EXEEXT) \
+	ssgnc-idx-merge$(EXEEXT) ssgnc-ngms-encode$(EXEEXT) \
+	ssgnc-ngms-merge$(EXEEXT) ssgnc-ngms-split$(EXEEXT) \
 	ssgnc-vocab-dic-build$(EXEEXT) ssgnc-vocab-dic-lookup$(EXEEXT)
 subdir = tools
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
@@ -49,10 +48,6 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_ssgnc_db_lookup_OBJECTS = ssgnc-db-lookup.$(OBJEXT) \
-	tools-common.$(OBJEXT)
-ssgnc_db_lookup_OBJECTS = $(am_ssgnc_db_lookup_OBJECTS)
-ssgnc_db_lookup_DEPENDENCIES = ../lib/libssgnc.a
 am_ssgnc_db_merge_OBJECTS = ssgnc-db-merge.$(OBJEXT) \
 	tools-common.$(OBJEXT)
 ssgnc_db_merge_OBJECTS = $(am_ssgnc_db_merge_OBJECTS)
@@ -77,10 +72,6 @@ am_ssgnc_ngms_split_OBJECTS = ssgnc-ngms-split.$(OBJEXT) \
 	tools-common.$(OBJEXT)
 ssgnc_ngms_split_OBJECTS = $(am_ssgnc_ngms_split_OBJECTS)
 ssgnc_ngms_split_DEPENDENCIES = ../lib/libssgnc.a
-am_ssgnc_search_OBJECTS = ssgnc-search.$(OBJEXT) \
-	tools-common.$(OBJEXT)
-ssgnc_search_OBJECTS = $(am_ssgnc_search_OBJECTS)
-ssgnc_search_DEPENDENCIES = ../lib/libssgnc.a
 am_ssgnc_vocab_dic_build_OBJECTS = ssgnc-vocab-dic-build.$(OBJEXT) \
 	tools-common.$(OBJEXT)
 ssgnc_vocab_dic_build_OBJECTS = $(am_ssgnc_vocab_dic_build_OBJECTS)
@@ -120,16 +111,14 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(ssgnc_db_lookup_SOURCES) $(ssgnc_db_merge_SOURCES) \
-	$(ssgnc_db_split_SOURCES) $(ssgnc_idx_merge_SOURCES) \
-	$(ssgnc_ngms_encode_SOURCES) $(ssgnc_ngms_merge_SOURCES) \
-	$(ssgnc_ngms_split_SOURCES) $(ssgnc_search_SOURCES) \
+SOURCES = $(ssgnc_db_merge_SOURCES) $(ssgnc_db_split_SOURCES) \
+	$(ssgnc_idx_merge_SOURCES) $(ssgnc_ngms_encode_SOURCES) \
+	$(ssgnc_ngms_merge_SOURCES) $(ssgnc_ngms_split_SOURCES) \
 	$(ssgnc_vocab_dic_build_SOURCES) \
 	$(ssgnc_vocab_dic_lookup_SOURCES)
-DIST_SOURCES = $(ssgnc_db_lookup_SOURCES) $(ssgnc_db_merge_SOURCES) \
-	$(ssgnc_db_split_SOURCES) $(ssgnc_idx_merge_SOURCES) \
-	$(ssgnc_ngms_encode_SOURCES) $(ssgnc_ngms_merge_SOURCES) \
-	$(ssgnc_ngms_split_SOURCES) $(ssgnc_search_SOURCES) \
+DIST_SOURCES = $(ssgnc_db_merge_SOURCES) $(ssgnc_db_split_SOURCES) \
+	$(ssgnc_idx_merge_SOURCES) $(ssgnc_ngms_encode_SOURCES) \
+	$(ssgnc_ngms_merge_SOURCES) $(ssgnc_ngms_split_SOURCES) \
 	$(ssgnc_vocab_dic_build_SOURCES) \
 	$(ssgnc_vocab_dic_lookup_SOURCES)
 ETAGS = etags
@@ -230,8 +219,6 @@ AM_CXXFLAGS = -Wall -Weffc++ -I../include
 bin_SCRIPTS = \
 	ssgnc-build.sh
 
-ssgnc_db_lookup_SOURCES = ssgnc-db-lookup.cc tools-common.cc
-ssgnc_db_lookup_LDADD = ../lib/libssgnc.a
 ssgnc_db_merge_SOURCES = ssgnc-db-merge.cc tools-common.cc
 ssgnc_db_merge_LDADD = ../lib/libssgnc.a
 ssgnc_db_split_SOURCES = ssgnc-db-split.cc tools-common.cc
@@ -244,8 +231,6 @@ ssgnc_ngms_merge_SOURCES = ssgnc-ngms-merge.cc tools-common.cc
 ssgnc_ngms_merge_LDADD = ../lib/libssgnc.a
 ssgnc_ngms_split_SOURCES = ssgnc-ngms-split.cc tools-common.cc
 ssgnc_ngms_split_LDADD = ../lib/libssgnc.a
-ssgnc_search_SOURCES = ssgnc-search.cc tools-common.cc
-ssgnc_search_LDADD = ../lib/libssgnc.a
 ssgnc_vocab_dic_build_SOURCES = ssgnc-vocab-dic-build.cc tools-common.cc
 ssgnc_vocab_dic_build_LDADD = ../lib/libssgnc.a
 ssgnc_vocab_dic_lookup_SOURCES = ssgnc-vocab-dic-lookup.cc tools-common.cc
@@ -325,9 +310,6 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-ssgnc-db-lookup$(EXEEXT): $(ssgnc_db_lookup_OBJECTS) $(ssgnc_db_lookup_DEPENDENCIES) 
-	@rm -f ssgnc-db-lookup$(EXEEXT)
-	$(CXXLINK) $(ssgnc_db_lookup_OBJECTS) $(ssgnc_db_lookup_LDADD) $(LIBS)
 ssgnc-db-merge$(EXEEXT): $(ssgnc_db_merge_OBJECTS) $(ssgnc_db_merge_DEPENDENCIES) 
 	@rm -f ssgnc-db-merge$(EXEEXT)
 	$(CXXLINK) $(ssgnc_db_merge_OBJECTS) $(ssgnc_db_merge_LDADD) $(LIBS)
@@ -346,9 +328,6 @@ ssgnc-ngms-merge$(EXEEXT): $(ssgnc_ngms_merge_OBJECTS) $(ssgnc_ngms_merge_DEPEND
 ssgnc-ngms-split$(EXEEXT): $(ssgnc_ngms_split_OBJECTS) $(ssgnc_ngms_split_DEPENDENCIES) 
 	@rm -f ssgnc-ngms-split$(EXEEXT)
 	$(CXXLINK) $(ssgnc_ngms_split_OBJECTS) $(ssgnc_ngms_split_LDADD) $(LIBS)
-ssgnc-search$(EXEEXT): $(ssgnc_search_OBJECTS) $(ssgnc_search_DEPENDENCIES) 
-	@rm -f ssgnc-search$(EXEEXT)
-	$(CXXLINK) $(ssgnc_search_OBJECTS) $(ssgnc_search_LDADD) $(LIBS)
 ssgnc-vocab-dic-build$(EXEEXT): $(ssgnc_vocab_dic_build_OBJECTS) $(ssgnc_vocab_dic_build_DEPENDENCIES) 
 	@rm -f ssgnc-vocab-dic-build$(EXEEXT)
 	$(CXXLINK) $(ssgnc_vocab_dic_build_OBJECTS) $(ssgnc_vocab_dic_build_LDADD) $(LIBS)
@@ -396,14 +375,12 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-db-lookup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-db-merge.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-db-split.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-idx-merge.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-ngms-encode.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-ngms-merge.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-ngms-split.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-search.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-vocab-dic-build.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-vocab-dic-lookup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tools-common.Po@am__quote@

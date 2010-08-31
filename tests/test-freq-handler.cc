@@ -1,8 +1,10 @@
-#include "ssgnc.h"
+#include "ssgnc/freq-handler.h"
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <ctime>
+#include <vector>
 
 bool compareFreqs(ssgnc::Int64 lhs, ssgnc::Int64 rhs)
 {
@@ -28,47 +30,24 @@ int main()
 
 	for (std::size_t i = 0; i < freqs.size(); ++i)
 	{
-		freqs[i] = static_cast<ssgnc::Int64>(std::rand())
-			* (static_cast<ssgnc::Int64>(RAND_MAX) + 1);
-		freqs[i] |= std::rand();
-		freqs[i] %= ssgnc::FreqHandler::MAX_FREQ - 1;
-		freqs[i] += 1;
+		freqs[i] = std::abs((static_cast<ssgnc::Int64>(std::rand()) << 32)
+			| (std::rand() & 0xFFFFFFFF)) % ssgnc::FreqHandler::MAX_FREQ;
 	}
 
 	std::sort(freqs.begin(), freqs.end());
 
 	for (std::size_t i = 0; i < encoded_freqs.size(); ++i)
-		assert(handler.encode(freqs[i], &encoded_freqs[i]));
+		encoded_freqs[i] = handler.encode(freqs[i]);
 
 	for (std::size_t i = 1; i < encoded_freqs.size(); ++i)
 		assert(encoded_freqs[i - 1] <= encoded_freqs[i]);
 
 	for (std::size_t i = 1; i < encoded_freqs.size(); ++i)
 	{
-		ssgnc::Int64 decoded_freq;
-		assert(handler.decode(encoded_freqs[i], &decoded_freq));
+		ssgnc::Int64 decoded_freq = handler.decode(encoded_freqs[i]);
 		assert(decoded_freq <= freqs[i]);
 		assert(compareFreqs(decoded_freq, freqs[i]));
 	}
-
-	for (ssgnc::Int64 freq = 1; freq < 1000; ++freq)
-	{
-		ssgnc::Int16 encoded_freq;
-		assert(handler.encode(freq, &encoded_freq));
-		assert(encoded_freq == freq);
-
-		ssgnc::Int64 decoded_freq;
-		assert(handler.decode(encoded_freq, &decoded_freq));
-		assert(decoded_freq == freq);
-	}
-
-	ssgnc::Int16 temp_encoded_freq;
-	assert(handler.encode(ssgnc::FreqHandler::MAX_FREQ, &temp_encoded_freq));
-	assert(temp_encoded_freq == ssgnc::FreqHandler::MAX_ENCODED_FREQ);
-
-	ssgnc::Int64 temp_freq;
-	assert(handler.decode(ssgnc::FreqHandler::MAX_ENCODED_FREQ, &temp_freq));
-	assert(temp_freq == ssgnc::FreqHandler::MAX_FREQ);
 
 	return 0;
 }

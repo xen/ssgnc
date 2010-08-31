@@ -1,47 +1,33 @@
 #ifndef SSGNC_BYTE_READER_H
 #define SSGNC_BYTE_READER_H
 
-#include "common.h"
-#include "string-builder.h"
+#include "int-types.h"
+
+#include <iostream>
+#include <vector>
 
 namespace ssgnc {
 
 class ByteReader
 {
 public:
-	ByteReader() : stream_(NULL), buf_(), buf_size_(0), pos_(0), total_(0) {}
-	~ByteReader();
-
-	bool open(std::istream *stream, UInt32 buf_size = 0)
-		SSGNC_WARN_UNUSED_RESULT;
-	bool close();
-
-	bool read(Int8 *byte) SSGNC_WARN_UNUSED_RESULT;
-
-	bool readEncodedFreq(Int16 *encoded_freq) SSGNC_WARN_UNUSED_RESULT;
-	bool readFreq(StringBuilder *buf, Int16 *freq) SSGNC_WARN_UNUSED_RESULT;
-
-	bool readToken(Int32 *token) SSGNC_WARN_UNUSED_RESULT;
-	bool readToken(StringBuilder *buf, Int32 *token) SSGNC_WARN_UNUSED_RESULT;
-
-	bool is_open() const { return stream_ != NULL; }
-
-	bool bad() const
-	{ return stream_ == NULL || stream_->bad(); }
-	bool eof() const
-	{ return stream_ == NULL || (pos_ >= buf_.size() && stream_->eof()); }
-	bool good() const
-	{ return !bad() && (pos_ < buf_.size() || stream_->good()); }
-	bool fail() const
-	{ return bad() || (pos_ >= buf_.size() && stream_->fail()); }
-
-	UInt64 tell() const { return total_; }
-
 	enum { DEFAULT_BUF_SIZE = 1 << 12 };
-	enum { MAX_FREQ_LENGTH = 2, MAX_TOKEN_LENGTH = 5 };
+	enum { EOS_VALUE = -1 };
+
+	ByteReader() : in_(NULL), buf_(), buf_size_(0), pos_(0), total_(0) {}
+	~ByteReader() { close(); }
+
+	bool open(std::istream *in, UInt32 buf_size = 0);
+	void close();
+
+	Int32 read();
+
+	bool eof() const { return (pos_ >= buf_.size()) && in_->eof(); }
+
+	UInt64 total() const { return total_; }
 
 private:
-	std::istream *stream_;
+	std::istream *in_;
 	std::vector<Int8> buf_;
 	UInt32 buf_size_;
 	UInt32 pos_;
@@ -54,29 +40,48 @@ private:
 	ByteReader &operator=(const ByteReader &);
 };
 
-inline bool ByteReader::read(Int8 *byte)
+inline bool ByteReader::open(std::istream *in, UInt32 buf_size)
 {
-	if (!is_open())
-	{
-		SSGNC_ERROR << "Null stream" << std::endl;
-		return false;
-	}
-	else if (byte == NULL)
-	{
-		SSGNC_ERROR << "Null pointer" << std::endl;
-		return false;
-	}
+	close();
 
+	if (buf_size == 0)
+		buf_size = DEFAULT_BUF_SIZE;
+
+	in_ = in;
+	buf_.reserve(buf_size);
+	buf_.clear();
+	buf_size_ = buf_size;
+	return true;
+}
+
+inline void ByteReader::close()
+{
+	in_ = NULL;
+	buf_size_ = 0;
+	pos_ = 0;
+	total_ = 0;
+}
+
+inline Int32 ByteReader::read()
+{
 	if (pos_ >= buf_.size() && !fill())
-	{
-		if (stream_->bad())
-			SSGNC_ERROR << "ssgnc::ByteReader::fill() failed" << std::endl;
-		return false;
-	}
+		return EOS_VALUE;
 
 	++total_;
-	*byte = buf_[pos_++];
-	return true;
+	return static_cast<UInt8>(buf_[pos_++]);
+}
+
+inline bool ByteReader::fill()
+{
+	if (!(*in_))
+		return false;
+
+	buf_.resize(buf_size_);
+	in_->read(&buf_[0], buf_size_);
+	buf_.resize(static_cast<std::size_t>(in_->gcount()));
+
+	pos_ = 0;
+	return buf_.size() > 0;
 }
 
 }  // namespace ssgnc

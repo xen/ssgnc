@@ -1,7 +1,7 @@
 #ifndef SSGNC_FREQ_HANDLER_H
 #define SSGNC_FREQ_HANDLER_H
 
-#include "common.h"
+#include "int-types.h"
 
 namespace ssgnc {
 
@@ -11,12 +11,10 @@ public:
 	FreqHandler() {}
 	~FreqHandler() {}
 
-	bool encode(Int64 freq, Int16 *encoded_freq) const
-		SSGNC_WARN_UNUSED_RESULT;
-	bool decode(Int16 encoded_freq, Int64 *freq) const
-		SSGNC_WARN_UNUSED_RESULT;
+	Int16 encode(Int64 freq) const;
+	Int64 decode(Int16 encoded_freq) const;
 
-	// The maximum freq has three 9s and fifteen 0s.
+	// Three 9s and fifteen 0s.
 	static const Int64 MAX_FREQ = 999000000000000000LL;
 	static const Int16 MAX_ENCODED_FREQ = (0x0F << 10) + 999;
 
@@ -36,30 +34,19 @@ private:
 	FreqHandler &operator=(const FreqHandler &);
 };
 
-inline bool FreqHandler::encode(Int64 freq, Int16 *encoded_freq) const
+inline Int16 FreqHandler::encode(Int64 freq) const
 {
-	if (freq <= 0 || freq > MAX_FREQ)
-	{
-		SSGNC_ERROR << "Out of range freq: " << freq << std::endl;
-		return false;
-	}
-	else if (encoded_freq == NULL)
-	{
-		SSGNC_ERROR << "Null pointer" << std::endl;
-		return false;
-	}
-
-	*encoded_freq = 0;
+	Int16 encoded_freq = 0;
 	while (freq > MAX_RAW_FREQ)
 	{
-		*encoded_freq += 1 << NUM_LOWER_BITS;
+		encoded_freq += 1 << NUM_LOWER_BITS;
 		freq /= 10;
 	}
-	*encoded_freq += static_cast<short>(freq);
-	return true;
+	encoded_freq += static_cast<short>(freq);
+	return encoded_freq;
 }
 
-inline bool FreqHandler::decode(Int16 encoded_freq, Int64 *freq) const
+inline Int64 FreqHandler::decode(Int16 encoded_freq) const
 {
 	static const Int64 TABLE[] = {
 		1LL,
@@ -80,21 +67,8 @@ inline bool FreqHandler::decode(Int16 encoded_freq, Int64 *freq) const
 		1000000000000000LL
 	};
 
-	if (encoded_freq <= 0 || encoded_freq > MAX_ENCODED_FREQ ||
-		(encoded_freq & LOWER_MASK) > MAX_RAW_FREQ)
-	{
-		SSGNC_ERROR << "Out of range freq: " << encoded_freq << std::endl;
-		return false;
-	}
-	else if (freq == NULL)
-	{
-		SSGNC_ERROR << "Null pointer" << std::endl;
-		return false;
-	}
-
-	*freq = encoded_freq & LOWER_MASK;
-	*freq *= TABLE[(encoded_freq & UPPER_MASK) >> NUM_LOWER_BITS];
-	return true;
+	Int64 freq = encoded_freq & LOWER_MASK;
+	return freq * TABLE[(encoded_freq & UPPER_MASK) >> NUM_LOWER_BITS];
 }
 
 }  // namespace ssgnc

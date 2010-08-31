@@ -8,7 +8,7 @@ namespace ssgnc {
 class StringHash
 {
 public:
-	UInt32 operator()(const String &str) const;
+	UInt32 operator()(String str) const;
 
 private:
 	static void mix(UInt32 &x, UInt32 &y, UInt32 &z);
@@ -16,50 +16,50 @@ private:
 };
 
 // http://burtleburtle.net/bob/hash/doobs.html
-inline UInt32 StringHash::operator()(const String &str) const
+inline UInt32 StringHash::operator()(String str) const
 {
 	UInt32 x = 0x9E3779B9U;
 	UInt32 y = 0x9E3779B9U;
 	UInt32 z = 0;
-	String avail = str;
+	UInt32 original_length = str.length();
 
-	while (avail.length() >= 12)
+	while (str.length() >= 12)
 	{
-		x += toUInt32(avail[0]) + (toUInt32(avail[1]) << 8)
-			+ (toUInt32(avail[2]) << 16) + (toUInt32(avail[3]) << 24);
-		y += toUInt32(avail[4]) + (toUInt32(avail[5]) << 8)
-			+ (toUInt32(avail[6]) << 16) + (toUInt32(avail[7]) << 24);
-		z += toUInt32(avail[8]) + (toUInt32(avail[9]) << 8)
-			+ (toUInt32(avail[10]) << 16) + (toUInt32(avail[11]) << 24);
+		x += toUInt32(str[0]) + (toUInt32(str[1]) << 8)
+			+ (toUInt32(str[2]) << 16) + (toUInt32(str[3]) << 24);
+		y += toUInt32(str[4]) + (toUInt32(str[5]) << 8)
+			+ (toUInt32(str[6]) << 16) + (toUInt32(str[7]) << 24);
+		z += toUInt32(str[8]) + (toUInt32(str[9]) << 8)
+			+ (toUInt32(str[10]) << 16) + (toUInt32(str[11]) << 24);
 		mix(x, y, z);
-		avail = avail.substr(12);
+		str = str.substr(12);
 	}
 
-	z += str.length();
-	switch (avail.length())
+	z += original_length;
+	switch (str.length())
 	{
 	case 11:
-		z += toUInt32(avail[10]) << 24;
+		z += toUInt32(str[10]) << 24;
 	case 10:
-		z += toUInt32(avail[9]) << 16;
+		z += toUInt32(str[9]) << 16;
 	case 9:
-		z += toUInt32(avail[8]) << 8;
+		z += toUInt32(str[8]) << 8;
 	case 8:
-		y += toUInt32(avail[7]) << 24;
+		y += toUInt32(str[7]) << 24;
 	case 7:
-		y += toUInt32(avail[6]) << 16;
+		y += toUInt32(str[6]) << 16;
 	case 6:
-		y += toUInt32(avail[5]) << 8;
+		y += toUInt32(str[5]) << 8;
 	case 5:
-		y += toUInt32(avail[4]);
+		y += toUInt32(str[4]);
 	case 4:
-		x += toUInt32(avail[3]) << 24;
+		x += toUInt32(str[3]) << 24;
 	case 3:
-		x += toUInt32(avail[2]) << 16;
+		x += toUInt32(str[2]) << 16;
 	case 2:
-		x += toUInt32(avail[1]) << 8;
+		x += toUInt32(str[1]) << 8;
 	case 1:
-		x += toUInt32(avail[0]);
+		x += toUInt32(str[0]);
 	}
 
 	mix(x, y, z);

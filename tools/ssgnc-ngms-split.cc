@@ -5,6 +5,9 @@
 
 namespace {
 
+ssgnc::Int32 num_tokens;
+ssgnc::VocabDic vocab_dic;
+
 struct Ngram
 {
 	ssgnc::UInt32 pos;
@@ -14,98 +17,81 @@ struct Ngram
 // Token ID (first) and Ngram ID (second).
 typedef std::pair<ssgnc::Int32, ssgnc::UInt32> IdPair;
 
-ssgnc::Int32 num_tokens;
-ssgnc::VocabDic vocab_dic;
 ssgnc::MemPool ngram_pool;
 std::vector<Ngram> ngrams;
 std::vector<IdPair> pairs;
-
-bool testMemLimit(ssgnc::UInt64 *mem_limit)
-{
-	try
-	{
-		ngrams.reserve(*mem_limit / 64);
-	}
-	catch (...)
-	{
-		SSGNC_ERROR << "std::vector<Ngram>::reserve() failed: "
-			<< sizeof(Ngram) << " * " << (*mem_limit / 64) << std::endl;
-		return false;
-	}
-
-	try
-	{
-		pairs.reserve(*mem_limit / 16);
-	}
-	catch (...)
-	{
-		SSGNC_ERROR << "std::vector<IdPair>::reserve() failed: "
-			<< sizeof(IdPair) << " * " << (*mem_limit / 16) << std::endl;
-		return false;
-	}
-
-	*mem_limit -= sizeof(ngrams[0]) * ngrams.capacity()
-		+ sizeof(pairs[0]) * pairs.capacity();
-	return true;
-}
 
 bool readNgram(ssgnc::ByteReader *byte_reader,
 	std::vector<ssgnc::Int32> *tokens, Ngram *ngram)
 {
 	static ssgnc::StringBuilder ngram_buf;
 
-	if (!ssgnc::tools::readFreq(byte_reader, &ngram_buf, NULL))
+	ngram_buf.clear();
+	tokens->clear();
+
+	ssgnc::Int32 byte;
+	ssgnc::Int32 freq = 0;
+	while ((byte = byte_reader->read()) >= 0)
 	{
-		if (byte_reader->bad())
-			SSGNC_ERROR << "ssgnc::tools::readFreq() failed" << std::endl;
+		ngram_buf.append(static_cast<ssgnc::Int8>(byte));
+
+		freq = (freq << 7) + (byte & 0x7F);
+		if (freq > ssgnc::FreqHandler::MAX_ENCODED_FREQ)
+		{
+			ERROR << "out of range freq: " << freq << std::endl;
+			return false;
+		}
+		else if (byte < 0x80)
+			break;
+	}
+
+	if (byte < 0)
 		return false;
-	}
 
-	if (!ssgnc::tools::readTokens(num_tokens, vocab_dic,
-		byte_reader, &ngram_buf, tokens))
+	ssgnc::Int32 token = 0;
+	ssgnc::Int32 token_count = 0;
+	while ((byte = byte_reader->read()) >= 0)
 	{
-		SSGNC_ERROR << "ssgnc::tools::readTokens() failed" << std::endl;
-		return false;
+		ngram_buf.append(static_cast<ssgnc::Int8>(byte));
+
+		token = (token << 7) + (byte & 0x7F);
+		if (byte < 0x80)
+		{
+			if (static_cast<ssgnc::UInt32>(token) >= vocab_dic.num_keys())
+			{
+				ERROR << "unknown token: " << token << std::endl;
+				return false;
+			}
+			else if (std::find(tokens->begin(), tokens->end(), token)
+				== tokens->end())
+				tokens->push_back(token);
+			token = 0;
+
+			if (++token_count == num_tokens)
+			{
+				ngram->pos = ngram_pool.append(ngram_buf.str());
+				ngram->length = ngram_buf.length();
+				ngrams.push_back(*ngram);
+				return true;
+			}
+		}
 	}
 
-	std::sort(tokens->begin(), tokens->end());
-	tokens->erase(std::unique(tokens->begin(), tokens->end()), tokens->end());
-
-	if (!ngram_pool.append(ngram_buf.str(), &ngram->pos))
-	{
-		SSGNC_ERROR << "ssgnc::MemPool::append() failed" << std::endl;
-		return false;
-	}
-	ngram->length = ngram_buf.length();
-
-	try
-	{
-		ngrams.push_back(*ngram);
-	}
-	catch (...)
-	{
-		SSGNC_ERROR << "std::vector<Ngram>::push_back() failed: "
-			<< ngrams.size() << std::endl;
-		return false;
-	}
-
-	return true;
+	return false;
 }
 
 bool flushNgrams(ssgnc::FilePath *file_path)
 {
-	ssgnc::StringBuilder path;
-	if (!file_path->read(&path))
+	if (!file_path->next())
 	{
-		SSGNC_ERROR << "ssgnc::FilePath::read() failed: " << std::endl;
+		ERROR << "failed to generate file path" << std::endl;
 		return false;
 	}
 
-	std::ofstream file(path.ptr(), std::ios::binary);
+	std::ofstream file(file_path->path().ptr(), std::ios::binary);
 	if (!file)
 	{
-		SSGNC_ERROR << "std::ofstream::open() failed: "
-			<< path.str() << std::endl;
+		ERROR << "failed to open file: " << file_path->path() << std::endl;
 		return false;
 	}
 
@@ -126,22 +112,9 @@ bool flushNgrams(ssgnc::FilePath *file_path)
 			file.put('\0');
 			++token;
 		}
-
-		ssgnc::String ngram_str;
-		const Ngram &ngram = ngrams[pairs[i].second];
-		if (!ngram_pool.get(ngram.pos, ngram.length, &ngram_str))
-		{
-			SSGNC_ERROR << "ssgnc::MemPool::get() failed: "
-				<< ngram.pos << ", " << ngram.length << std::endl;
-			return false;
-		}
-
-		file << ngram_str;
-		if (!file)
-		{
-			SSGNC_ERROR << "std::ofstream::operator<<() failed" << std::endl;
-			return false;
-		}
+		ssgnc::String ngram = ngram_pool.get(
+			ngrams[pairs[i].second].pos, ngrams[pairs[i].second].length);
+		file << ngram;
 	}
 
 	while (static_cast<ssgnc::UInt32>(token) < vocab_dic.num_keys())
@@ -156,85 +129,65 @@ bool flushNgrams(ssgnc::FilePath *file_path)
 
 	if (!file.flush())
 	{
-		SSGNC_ERROR << "std::ofstream::flush() failed" << std::endl;
+		ERROR << "failed to write ngrams" << std::endl;
 		return false;
 	}
 
 	return true;
 }
 
-bool splitNgrams(ssgnc::FilePath *file_path, ssgnc::UInt64 mem_limit)
+bool splitNgrams(ssgnc::FilePath *file_path)
 {
-	const ssgnc::UInt64 FILE_SIZE_LIMIT = 0x7FFFFFFF - (256 * num_tokens);
-
-	if (!testMemLimit(&mem_limit))
-	{
-		SSGNC_ERROR << "testMemLimit() failed" << std::endl;
-		return false;
-	}
+	static const ssgnc::UInt32 NUM_NGRAMS_THRESHOLD = 1 << 24;
+	static const ssgnc::UInt32 NUM_PAIRS_THRESHOLD = (1 << 26) - (1 << 16);
+	static const ssgnc::UInt32 MEM_USAGE_THRESHOLD = 1 << 30;
+	static const ssgnc::UInt32 FILE_SIZE_THRESHOLD = (1U << 31) - (1 << 26);
 
 	ssgnc::ByteReader byte_reader;
-	if (!byte_reader.open(&std::cin))
-	{
-		SSGNC_ERROR << "ssgnc::ByteReader::open() failed" << std::endl;
-		return false;
-	}
-
-	ssgnc::UInt64 num_pairs = 0;
-	ssgnc::UInt64 file_size = 0;
-	ssgnc::UInt64 total_size = 0;
+	byte_reader.open(&std::cin);
 
 	std::vector<ssgnc::Int32> tokens;
+
+	ssgnc::UInt64 num_pairs = 0;
+	ssgnc::UInt32 file_size = 0;
+	ssgnc::UInt64 total_size = 0;
+
 	Ngram ngram = { 0, 0 };
 	while (readNgram(&byte_reader, &tokens, &ngram))
 	{
-		try
-		{
-			for (std::size_t i = 0; i < tokens.size(); ++i)
-				pairs.push_back(IdPair(tokens[i], ngram_pool.num_objs() - 1));
-		}
-		catch (...)
-		{
-			SSGNC_ERROR << "std::vector<IdPair>::push_back() failed: "
-				<< pairs.size() << std::endl;
-			return false;
-		}
+		for (std::size_t i = 0; i < tokens.size(); ++i)
+			pairs.push_back(IdPair(tokens[i], ngram_pool.num_objs() - 1));
 
 		num_pairs += tokens.size();
-		file_size += ngram.length * tokens.size();
+		file_size += static_cast<ssgnc::UInt32>(ngram.length * tokens.size());
 		total_size += ngram.length * tokens.size();
 
-		if (ngrams.size() >= ngrams.capacity() ||
-			pairs.size() + num_tokens > pairs.capacity() ||
-			ngram_pool.total_size() >= mem_limit ||
-			file_size >= FILE_SIZE_LIMIT)
+		ssgnc::UInt32 mem_usage = ngram_pool.total_size()
+			+ static_cast<ssgnc::UInt32>(sizeof(ngrams[0]) * ngrams.capacity())
+			+ static_cast<ssgnc::UInt32>(sizeof(pairs[0]) * pairs.capacity());
+		if (ngrams.size() >= NUM_NGRAMS_THRESHOLD ||
+			pairs.size() >= NUM_PAIRS_THRESHOLD ||
+			mem_usage >= MEM_USAGE_THRESHOLD ||
+			file_size >= FILE_SIZE_THRESHOLD)
 		{
 			if (!flushNgrams(file_path))
-			{
-				SSGNC_ERROR << "flushNgrams() failed" << std::endl;
 				return false;
-			}
 			file_size = 0;
 		}
 	}
 
-	if (byte_reader.bad())
-	{
-		SSGNC_ERROR << "readNgram() failed" << std::endl;
+	if (!byte_reader.eof())
 		return false;
-	}
 
 	if (!ngrams.empty())
 	{
 		if (!flushNgrams(file_path))
-		{
-			SSGNC_ERROR << "flushNgrams() failed" << std::endl;
 			return false;
-		}
 	}
 
 	std::cerr << "No. pairs: " << num_pairs
 		<< ", Total size: " << total_size << std::endl;
+
 	return true;
 }
 
@@ -244,29 +197,26 @@ int main(int argc, char *argv[])
 {
 	ssgnc::tools::initIO();
 
-	if (argc < 4 || argc > 5)
+	if (argc != 4)
 	{
 		std::cerr << "Usage: " << argv[0]
-			<< " NUM_TOKENS VOCAB_DIC TEMP_DIR [MEM_LIMIT]" << std::endl;
+			<< " NUM_TOKENS VOCAB_DIC TEMP_DIR" << std::endl;
 		return 1;
 	}
 
 	if (!ssgnc::tools::parseNumTokens(argv[1], &num_tokens))
 		return 2;
 
-	if (!vocab_dic.open(argv[2]))
+	ssgnc::FileMap file_map;
+	if (!ssgnc::tools::mmapVocabDic(argv[2], &file_map, &vocab_dic))
 		return 3;
 
 	ssgnc::FilePath file_path;
 	if (!ssgnc::tools::initFilePath(argv[3], "part", num_tokens, &file_path))
 		return 4;
 
-	ssgnc::UInt64 mem_limit = 1024ULL << 20;
-	if (argc > 4 && !ssgnc::tools::parseMemLimit(argv[4], &mem_limit))
+	if (!splitNgrams(&file_path))
 		return 5;
-
-	if (!splitNgrams(&file_path, mem_limit))
-		return 6;
 
 	return 0;
 }
