@@ -3,43 +3,34 @@ AM_CXXFLAGS = -Wall -Weffc++ -I../include
 lib_LIBRARIES = libssgnc.a
 
 libssgnc_a_SOURCES = \
-	agent.cc \
-	byte-reader.cc \
-	common.cc \
-	database.cc \
-	file-map.cc \
-	file-path.cc \
-	mapper.cc \
-	mem-pool.cc \
-	ngram-index.cc \
-	ngram-reader.cc \
-	query.cc \
-	reader.cc \
-	string-builder.cc \
+	line-reader.cc \
+	temp-file.cc \
+	memory-pool.cc \
+	vocab-indexer.cc \
 	vocab-dic.cc \
-	writer.cc
-
-include_HEADERS = \
-	../include/ssgnc.h
+	parsed-line.cc \
+	parsed-line-pool.cc \
+	parsed-line-reader.cc \
+	line-parser.cc \
+	front-encoder.cc \
+	front-merger.cc \
+	back-divider.cc \
+	back-merger.cc
 
 libssgnc_a_includedir = $(includedir)/ssgnc
 libssgnc_a_include_HEADERS = \
-	../include/ssgnc/agent.h \
-	../include/ssgnc/byte-reader.h \
-	../include/ssgnc/common.h \
-	../include/ssgnc/database.h \
-	../include/ssgnc/file-map.h \
-	../include/ssgnc/file-path.h \
-	../include/ssgnc/freq-handler.h \
-	../include/ssgnc/heap-queue.h \
-	../include/ssgnc/mapper.h \
-	../include/ssgnc/mem-pool.h \
-	../include/ssgnc/ngram-index.h \
-	../include/ssgnc/ngram-reader.h \
-	../include/ssgnc/query.h \
-	../include/ssgnc/reader.h \
-	../include/ssgnc/string.h \
-	../include/ssgnc/string-builder.h \
-	../include/ssgnc/string-hash.h \
+	../include/ssgnc/darts.h \
+	../include/ssgnc/exception.h \
+	../include/ssgnc/line-reader.h \
+	../include/ssgnc/temp-file.h \
+	../include/ssgnc/memory-pool.h \
+	../include/ssgnc/vocab-indexer.h \
 	../include/ssgnc/vocab-dic.h \
-	../include/ssgnc/writer.h
+	../include/ssgnc/parsed-line.h \
+	../include/ssgnc/parsed-line-pool.h \
+	../include/ssgnc/parsed-line-reader.h \
+	../include/ssgnc/line-parser.h \
+	../include/ssgnc/front-encoder.h \
+	../include/ssgnc/front-merger.h \
+	../include/ssgnc/back-divider.h \
+	../include/ssgnc/back-merger.h

@@ -1,75 +1,72 @@
 #ifndef SSGNC_VOCAB_DIC_H
 #define SSGNC_VOCAB_DIC_H
 
-#include "string-hash.h"
-#include "file-map.h"
+//#include "query.h"
+
+#include <ssgnc/darts.h>
+
+#include <memory>
 
 namespace ssgnc {
 
 class VocabDic
 {
 public:
-	VocabDic();
-	~VocabDic();
+	VocabDic() : dic_(), num_keys_(0) {}
+	~VocabDic() { Clear(); }
 
-	bool open(const Int8 *path, FileMap::Mode mode = FileMap::DEFAULT_MODE)
-		SSGNC_WARN_UNUSED_RESULT;
-	bool close();
+//	// Fills key IDs in a query.
+//	bool FillQuery(Query *query) const
+//	{
+//		query->clear_key_id();
+//		for (int i = 0; i < query->key_string_size(); ++i)
+//		{
+//			if (query->order() == Query::FIXED && query->key_string(i).empty())
+//				query->add_key_id(-1);
+//			else
+//			{
+//				int key_id = -1;
+//				if (!Find(query->key_string(i).c_str(), &key_id))
+//					return false;
+//				query->add_key_id(key_id);
+//			}
+//		}
+//		return true;
+//	}
 
-	bool find(const String &key, Int32 *key_id) const
-		SSGNC_WARN_UNUSED_RESULT;
-	bool find(Int32 key_id, String *key) const SSGNC_WARN_UNUSED_RESULT;
+	std::size_t num_keys() const { return num_keys_; }
+	std::size_t total_size() const { return dic_->total_size(); }
 
-	bool is_open() const { return file_map_.is_open(); }
+	bool Find(const char *key, int *key_ptr) const;
+	bool Find(const char *key, std::size_t length, int *key_ptr) const;
 
-	UInt32 num_keys() const { return num_keys_; }
-	UInt32 table_size() const { return table_size_; }
-	UInt32 total_size() const { return total_size_; }
+	void Open(const char *dic_file_name);
+	void Close();
+	void Map(const void *address);
 
-	static bool build(const Int8 *path, const std::vector<String> &keys)
-		SSGNC_WARN_UNUSED_RESULT;
-
-	enum { INVALID_KEY_ID = -1 };
+	void Clear() { Close(); }
+	void Swap(VocabDic *target);
 
 private:
-	UInt32 num_keys_;
-	UInt32 table_size_;
-	UInt32 total_size_;
-	const Int32 *table_;
-	const UInt32 *offsets_;
-	const Int8 *keys_;
-	FileMap file_map_;
-
-	String restoreKey(Int32 key_id) const;
-
-	bool mapData(const void *ptr, UInt32 size) SSGNC_WARN_UNUSED_RESULT;
+	std::auto_ptr<Darts::DoubleArray> dic_;
+	std::size_t num_keys_;
 
 	// Disallows copies.
 	VocabDic(const VocabDic &);
 	VocabDic &operator=(const VocabDic &);
 };
 
-inline bool VocabDic::find(Int32 key_id, String *key) const
+inline bool VocabDic::Find(const char *key, int *key_ptr) const
 {
-	if (static_cast<UInt32>(key_id) >= num_keys_)
-	{
-		SSGNC_ERROR << "Out of range key ID: " << key_id << std::endl;
-		return false;
-	}
-	else if (key == NULL)
-	{
-		SSGNC_ERROR << "Null pointer" << std::endl;
-		return false;
-	}
-
-	*key = restoreKey(key_id);
-	return true;
+	dic_->exactMatchSearch(key, *key_ptr);
+	return *key_ptr >= 0;
 }
 
-inline String VocabDic::restoreKey(Int32 key_id) const
+inline bool VocabDic::Find(const char *key, std::size_t length,
+	int *key_ptr) const
 {
-	return String(keys_ + offsets_[key_id],
-		offsets_[key_id + 1] - offsets_[key_id]);
+	dic_->exactMatchSearch(key, *key_ptr, length);
+	return *key_ptr >= 0;
 }
 
 }  // namespace ssgnc
