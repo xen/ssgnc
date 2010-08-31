@@ -10,10 +10,11 @@ bool readNgram(ssgnc::ByteReader *byte_reader, ssgnc::Int16 *freq,
 {
 	if (!ssgnc::tools::readFreq(byte_reader, ngram_buf, freq))
 	{
-		if (byte_reader->bad())
-			SSGNC_ERROR << "ssgnc::tools::readFreq() failed" << std::endl;
+		SSGNC_ERROR << "ssgnc::tools::readFreq() failed" << std::endl;
 		return false;
 	}
+	else if (ngram_buf->empty())
+		return false;
 
 	if (*freq == 0)
 		return true;
@@ -166,12 +167,13 @@ bool splitDatabase(ssgnc::FilePath *file_path)
 		return false;
 	}
 
-	if (byte_reader.bad())
+	ssgnc::Int32 byte;
+	if (!byte_reader.read(&byte))
 	{
-		SSGNC_ERROR << "readNgram() failed" << std::endl;
+		SSGNC_ERROR << "ssgnc::ByteReader::read() failed" << std::endl;
 		return false;
 	}
-	else if (!byte_reader.eof())
+	else if (byte != EOF)
 	{
 		SSGNC_ERROR << "Extra bytes" << std::endl;
 		return false;
@@ -202,7 +204,7 @@ int main(int argc, char *argv[])
 	if (!ssgnc::tools::parseNumTokens(argv[1], &num_tokens))
 		return 2;
 
-	if (!vocab_dic.open(argv[2]))
+	if (!vocab_dic.mmap(argv[2]))
 		return 3;
 
 	ssgnc::FilePath file_path;

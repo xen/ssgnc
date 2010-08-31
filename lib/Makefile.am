@@ -3,17 +3,14 @@ AM_CXXFLAGS = -Wall -Weffc++ -I../include
 lib_LIBRARIES = libssgnc.a
 
 libssgnc_a_SOURCES = \
-	agent.cc \
 	byte-reader.cc \
 	common.cc \
-	database.cc \
 	file-map.cc \
 	file-path.cc \
 	mapper.cc \
 	mem-pool.cc \
 	ngram-index.cc \
 	ngram-reader.cc \
-	query.cc \
 	reader.cc \
 	string-builder.cc \
 	vocab-dic.cc \
@@ -22,12 +19,10 @@ libssgnc_a_SOURCES = \
 include_HEADERS = \
 	../include/ssgnc.h
 
-libssgnc_a_includedir = $(includedir)/ssgnc
+libssgnc_a_includedir = $(includedir)/wc
 libssgnc_a_include_HEADERS = \
-	../include/ssgnc/agent.h \
 	../include/ssgnc/byte-reader.h \
 	../include/ssgnc/common.h \
-	../include/ssgnc/database.h \
 	../include/ssgnc/file-map.h \
 	../include/ssgnc/file-path.h \
 	../include/ssgnc/freq-handler.h \

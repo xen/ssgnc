@@ -1,8 +1,10 @@
-#include "ssgnc.h"
+#include "ssgnc/freq-handler.h"
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <ctime>
+#include <vector>
 
 bool compareFreqs(ssgnc::Int64 lhs, ssgnc::Int64 rhs)
 {

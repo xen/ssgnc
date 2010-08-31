@@ -1,7 +1,9 @@
 #include "ssgnc.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <ctime>
+#include <vector>
 
 int main()
 {

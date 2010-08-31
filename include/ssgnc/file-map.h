@@ -8,13 +8,10 @@ namespace ssgnc {
 class FileMap
 {
 public:
-	enum Mode { MMAP_FILE, READ_FILE, DEFAULT_MODE = MMAP_FILE };
-
 	FileMap() : impl_(NULL), ptr_(NULL), size_(0) {}
 	~FileMap();
 
-	bool open(const Int8 *path, Mode mode = DEFAULT_MODE)
-		SSGNC_WARN_UNUSED_RESULT;
+	bool open(const Int8 *path) SSGNC_WARN_UNUSED_RESULT;
 	bool close();
 
 	const void *ptr() const { return ptr_; }

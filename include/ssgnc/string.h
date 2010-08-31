@@ -30,18 +30,9 @@ public:
 	const Int8 *ptr() const { return ptr_; }
 	UInt32 length() const { return length_; }
 
-	const Int8 *begin() const { return ptr_; }
-	const Int8 *end() const { return ptr_ + length_; }
-
 	bool empty() const { return length_ == 0; }
 
 	bool contains(Int8 c) const;
-
-	bool startsWith(const String &str) const;
-	bool lowerStartsWith(const String &str) const;
-
-	bool endsWith(Int8 c) const
-	{ return !empty() && (ptr_[length_ - 1] == c); }
 
 	bool first(Int8 c, UInt32 *pos) const;
 	bool last(Int8 c, UInt32 *pos) const;
@@ -79,6 +70,23 @@ inline bool String::operator==(const String &str) const
 	return true;
 }
 
+inline int String::compare(const String &str) const
+{
+	std::size_t i = 0;
+	while (i < length_)
+	{
+		if (i == str.length())
+			return 1;
+
+		UInt8 lc = static_cast<UInt8>(ptr_[i]);
+		UInt8 rc = static_cast<UInt8>(str[i]);
+		if (lc != rc)
+			return lc - rc;
+		++i;
+	}
+	return (i == str.length()) ? 0 : -1;
+}
+
 inline bool String::contains(Int8 c) const
 {
 	for (UInt32 i = 0; i < length_; ++i)
@@ -87,31 +95,6 @@ inline bool String::contains(Int8 c) const
 			return true;
 	}
 	return false;
-}
-
-inline bool String::startsWith(const String &str) const
-{
-	if (length_ < str.length())
-		return false;
-	for (std::size_t i = 0; i < str.length(); ++i)
-	{
-		if (ptr_[i] != str[i])
-			return false;
-	}
-	return true;
-}
-
-inline bool String::lowerStartsWith(const String &str) const
-{
-	if (length_ < str.length())
-		return false;
-	for (std::size_t i = 0; i < str.length(); ++i)
-	{
-		if (std::tolower(static_cast<UInt8>(ptr_[i])) !=
-			std::tolower(static_cast<UInt8>(str[i])))
-			return false;
-	}
-	return true;
 }
 
 inline bool String::first(Int8 c, UInt32 *pos) const
@@ -149,23 +132,6 @@ inline UInt32 String::lengthOf(const Int8 *str)
 	while (str[length] != '\0')
 		++length;
 	return length;
-}
-
-inline int String::compare(const String &str) const
-{
-	std::size_t i = 0;
-	while (i < length_)
-	{
-		if (i == str.length())
-			return 1;
-
-		UInt8 lc = static_cast<UInt8>(ptr_[i]);
-		UInt8 rc = static_cast<UInt8>(str[i]);
-		if (lc != rc)
-			return lc - rc;
-		++i;
-	}
-	return (i == str.length()) ? 0 : -1;
 }
 
 }  // namespace ssgnc

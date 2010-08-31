@@ -10,24 +10,28 @@ class VocabDic
 {
 public:
 	VocabDic();
-	~VocabDic();
+	~VocabDic() { clear(); }
 
-	bool open(const Int8 *path, FileMap::Mode mode = FileMap::DEFAULT_MODE)
-		SSGNC_WARN_UNUSED_RESULT;
-	bool close();
-
-	bool find(const String &key, Int32 *key_id) const
-		SSGNC_WARN_UNUSED_RESULT;
-	bool find(Int32 key_id, String *key) const SSGNC_WARN_UNUSED_RESULT;
-
-	bool is_open() const { return file_map_.is_open(); }
+	void clear();
 
 	UInt32 num_keys() const { return num_keys_; }
 	UInt32 table_size() const { return table_size_; }
 	UInt32 total_size() const { return total_size_; }
 
-	static bool build(const Int8 *path, const std::vector<String> &keys)
+	bool find(const String &key, Int32 *key_id) const
 		SSGNC_WARN_UNUSED_RESULT;
+	bool find(Int32 key_id, String *key) const SSGNC_WARN_UNUSED_RESULT;
+
+	bool build(const String *keys, UInt32 num_keys) SSGNC_WARN_UNUSED_RESULT;
+
+	bool load(const Int8 *path) SSGNC_WARN_UNUSED_RESULT;
+	bool read(std::istream *in) SSGNC_WARN_UNUSED_RESULT;
+
+	bool mmap(const Int8 *path) SSGNC_WARN_UNUSED_RESULT;
+	bool map(const void *ptr, UInt32 size) SSGNC_WARN_UNUSED_RESULT;
+
+	bool save(const Int8 *path) const SSGNC_WARN_UNUSED_RESULT;
+	bool write(std::ostream *out) const SSGNC_WARN_UNUSED_RESULT;
 
 	enum { INVALID_KEY_ID = -1 };
 
@@ -38,10 +42,14 @@ private:
 	const Int32 *table_;
 	const UInt32 *offsets_;
 	const Int8 *keys_;
+	std::vector<Int32> table_buf_;
+	std::vector<UInt32> offsets_buf_;
+	std::vector<Int8> keys_buf_;
 	FileMap file_map_;
 
 	String restoreKey(Int32 key_id) const;
 
+	bool readData(std::istream *in) SSGNC_WARN_UNUSED_RESULT;
 	bool mapData(const void *ptr, UInt32 size) SSGNC_WARN_UNUSED_RESULT;
 
 	// Disallows copies.

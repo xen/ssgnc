@@ -2,7 +2,6 @@
 #define SSGNC_COMMON_H
 
 #include <cstdio>
-#include <cstdlib>
 #include <functional>
 #include <fstream>
 #include <iostream>

@@ -1,6 +1,7 @@
 #include "ssgnc.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <ctime>
 
 bool openNextFile(ssgnc::FilePath *file_path, std::ofstream *file)
@@ -45,7 +46,7 @@ int main()
 	std::srand(static_cast<unsigned>(std::time(NULL)));
 
 	ssgnc::FilePath file_path;
-	assert(file_path.open("", "3gm-%04d.db"));
+	assert(file_path.open("3gm-%04d.db"));
 
 	std::ofstream file;
 	assert(openNextFile(&file_path, &file));
@@ -87,14 +88,7 @@ int main()
 	std::size_t src_id = 0;
 	for (int i = 0; i < MAX_TOKEN_ID; ++i)
 	{
-		if (ngram_reader.is_open())
-			ngram_reader.close();
-
-		ssgnc::NgramIndex::Entry entry;
-		assert(entry.set_file_id(file_ids[i]));
-		assert(entry.set_offset(offsets[i]));
-
-		assert(ngram_reader.open(".", 3, entry));
+		assert(ngram_reader.open(3, "3gm-%04d.db", file_ids[i], offsets[i]));
 		while (ngram_reader.read(&freq, &tokens))
 		{
 			assert(freq == src_freqs[src_id]);
@@ -102,11 +96,6 @@ int main()
 				assert(tokens[j] == src_tokens[(NUM_TOKENS * src_id) + j]);
 			++src_id;
 		}
-
-		assert(!ngram_reader.bad());
-		assert(ngram_reader.eof());
-		assert(ngram_reader.fail());
-		assert(!ngram_reader.good());
 	}
 	assert(src_id == src_freqs.size());
 

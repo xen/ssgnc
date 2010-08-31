@@ -24,30 +24,7 @@ int main()
 	assert(ssgnc::String(static_cast<const ssgnc::Int8 *>(file_map.ptr()),
 		file_map.size()) == src);
 
-	assert(file_map.close());
-
-	assert(file_map.ptr() == NULL);
-	assert(file_map.size() == 0);
-
-	assert(file_map.open("FILE_MAP", ssgnc::FileMap::MMAP_FILE));
-
-	assert(ssgnc::String(static_cast<const ssgnc::Int8 *>(file_map.ptr()),
-		file_map.size()) == src);
-
-	assert(file_map.close());
-
-	assert(file_map.ptr() == NULL);
-	assert(file_map.size() == 0);
-
-	assert(file_map.open("FILE_MAP", ssgnc::FileMap::READ_FILE));
-
-	assert(ssgnc::String(static_cast<const ssgnc::Int8 *>(file_map.ptr()),
-		file_map.size()) == src);
-
-	assert(file_map.close());
-
-	assert(file_map.ptr() == NULL);
-	assert(file_map.size() == 0);
+	file_map.close();
 
 	return 0;
 }

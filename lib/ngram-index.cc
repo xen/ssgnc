@@ -4,118 +4,20 @@
 
 namespace ssgnc {
 
-bool NgramIndex::FileEntry::set_file_id(Int32 file_id)
-{
-	if (file_id < 0 || file_id > MAX_FILE_ID)
-	{
-		SSGNC_ERROR << "Out of range file ID: " << file_id << std::endl;
-		return false;
-	}
-	file_id_ = static_cast<Int16>(file_id);
-	return true;
-}
-
-bool NgramIndex::FileEntry::set_offset(UInt32 offset)
-{
-	if (offset > MAX_OFFSET)
-	{
-		SSGNC_ERROR << "Too large offset: " << offset << std::endl;
-		return false;
-	}
-	offset_lo_ = static_cast<UInt16>(offset & 0xFFFF);
-	offset_hi_ = static_cast<UInt16>(offset >> 16);
-	return true;
-}
-
-bool NgramIndex::Entry::set_file_id(Int32 file_id)
-{
-	if (file_id < 0 || file_id > MAX_FILE_ID)
-	{
-		SSGNC_ERROR << "Out of range file ID: " << file_id << std::endl;
-		return false;
-	}
-	file_id_ = file_id;
-	return true;
-}
-
-bool NgramIndex::Entry::set_offset(UInt32 offset)
-{
-	if (offset > MAX_OFFSET)
-	{
-		SSGNC_ERROR << "Too large offset: " << offset << std::endl;
-		return false;
-	}
-	offset_ = offset;
-	return true;
-}
-
-bool NgramIndex::Entry::set_approx_size(Int64 approx_size)
-{
-	if (approx_size < 0 || approx_size > MAX_APPROX_SIZE)
-	{
-		SSGNC_ERROR << "Out of range approximate size: "
-			<< approx_size << std::endl;
-		return false;
-	}
-	approx_size_ = approx_size;
-	return true;
-}
-
 NgramIndex::NgramIndex() : max_num_tokens_(0), max_token_id_(0),
-	entries_(NULL), file_map_() {}
+	entries_(NULL), entries_buf_(), file_map_() {}
 
-NgramIndex::~NgramIndex()
+void NgramIndex::clear()
 {
-	if (is_open())
-		close();
-}
-
-bool NgramIndex::open(const Int8 *path, FileMap::Mode mode)
-{
-	if (is_open())
-	{
-		SSGNC_ERROR << "Already opened" << std::endl;
-		return false;
-	}
-	else if (path == NULL)
-	{
-		SSGNC_ERROR << "Null pointer" << std::endl;
-		return false;
-	}
-
-	if (!file_map_.open(path, mode))
-	{
-		SSGNC_ERROR << "ssgnc::FileMap::open() failed: " << path << std::endl;
-		return false;
-	}
-
-	if (!mapData(file_map_.ptr(), file_map_.size()))
-	{
-		SSGNC_ERROR << "ssgnc::NgramIndex::mapData() failed: "
-			<< path << ", " << file_map_.size() << std::endl;
-		file_map_.close();
-		return false;
-	}
-
-	return true;
-}
-
-bool NgramIndex::close()
-{
-	if (!is_open())
-	{
-		SSGNC_ERROR << "Not opened" << std::endl;
-		return false;
-	}
-
 	max_num_tokens_ = 0;
 	max_token_id_ = 0;
 	entries_ = NULL;
-	file_map_.close();
-	return true;
+	std::vector<FileEntry>().swap(entries_buf_);
+	if (file_map_.is_open())
+		file_map_.close();
 }
 
-bool NgramIndex::get(Int32 num_tokens, Int32 token_id, Entry *entry) const
+bool NgramIndex::get(Int32 num_tokens, Int32 token_id, Entry *entry)
 {
 	if (num_tokens < 1 || num_tokens > max_num_tokens_)
 	{
@@ -154,6 +56,148 @@ bool NgramIndex::get(Int32 num_tokens, Int32 token_id, Entry *entry) const
 			<< diff << std::endl;
 		return false;
 	}
+
+	return true;
+}
+
+bool NgramIndex::load(const Int8 *path)
+{
+	clear();
+
+	if (path == NULL)
+	{
+		SSGNC_ERROR << "Null pointer" << std::endl;
+		return false;
+	}
+
+	std::ifstream file(path, std::ios::binary);
+	if (!file)
+	{
+		SSGNC_ERROR << "std::ifstream::open() failed: " << path << std::endl;
+		return false;
+	}
+
+	if (!readData(&file))
+	{
+		SSGNC_ERROR << "ssgnc::NgramIndex::read() failed: "
+			<< path << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+bool NgramIndex::read(std::istream *in)
+{
+	clear();
+
+	if (in == NULL)
+	{
+		SSGNC_ERROR << "Null pointer" << std::endl;
+		return false;
+	}
+
+	if (!readData(in))
+	{
+		SSGNC_ERROR << "ssgnc::NgramIndex::readData() failed: " << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+bool NgramIndex::mmap(const Int8 *path)
+{
+	clear();
+
+	if (path == NULL)
+	{
+		SSGNC_ERROR << "Null pointer" << std::endl;
+		return false;
+	}
+
+	if (!file_map_.open(path))
+	{
+		SSGNC_ERROR << "ssgnc::FileMap::open() failed: " << path << std::endl;
+		return false;
+	}
+
+	if (!mapData(file_map_.ptr(), file_map_.size()))
+	{
+		SSGNC_ERROR << "ssgnc::VocabDic::mapData() failed: "
+			<< path << ", " << file_map_.size() << std::endl;
+		file_map_.close();
+		return false;
+	}
+
+	return true;
+}
+
+bool NgramIndex::map(const void *ptr, UInt32 size)
+{
+	clear();
+
+	if (ptr == NULL)
+	{
+		SSGNC_ERROR << "Null pointer" << std::endl;
+		return false;
+	}
+
+	if (!mapData(ptr, size))
+	{
+		SSGNC_ERROR << "ssgnc::VocabDic::mapData() failed: "
+			<< size << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+bool NgramIndex::readData(std::istream *in)
+{
+	Reader reader;
+	if (!reader.open(in))
+	{
+		SSGNC_ERROR << "ssgnc::Reader::open() failed" << std::endl;
+		return false;
+	}
+
+	Int32 max_num_tokens, max_token_id;
+	if (!reader.read(&max_num_tokens) || !reader.read(&max_token_id))
+	{
+		SSGNC_ERROR << "ssgnc::Reader::read() failed: header" << std::endl;
+		return false;
+	}
+	else if (max_num_tokens == 0 || max_token_id == 0)
+	{
+		SSGNC_ERROR << "Wrong header" << std::endl;
+		return false;
+	}
+
+	UInt32 num_entries = max_num_tokens * (max_token_id + 2);
+	std::vector<FileEntry> entries_buf;
+	try
+	{
+		entries_buf.resize(num_entries);
+	}
+	catch (...)
+	{
+		SSGNC_ERROR << "std::vector<FileEntry>::resize() failed: "
+			<< num_entries << std::endl;
+		return false;
+	}
+
+	if (!reader.read(&entries_buf[0], num_entries))
+	{
+		SSGNC_ERROR << "ssgnc::Reader::read() failed: entries" << std::endl;
+		return false;
+	}
+
+	max_num_tokens_ = max_num_tokens;
+	max_token_id_ = max_token_id;
+
+	entries_ = &entries_buf[0];
+	entries_buf_.swap(entries_buf);
 
 	return true;
 }

@@ -52,32 +52,93 @@ public:
 
 public:
 	NgramIndex();
-	~NgramIndex();
+	~NgramIndex() { clear(); }
 
-	bool open(const Int8 *path, FileMap::Mode mode = FileMap::DEFAULT_MODE)
-		SSGNC_WARN_UNUSED_RESULT;
-	bool close();
-
-	bool get(Int32 num_tokens, Int32 token_id, Entry *entry) const
-		SSGNC_WARN_UNUSED_RESULT;
-
-	bool is_open() const { return file_map_.is_open(); }
+	void clear();
 
 	Int32 max_num_tokens() const { return max_num_tokens_; }
 	Int32 max_token_id() const { return max_token_id_; }
+
+	bool get(Int32 num_tokens, Int32 token_id, Entry *entry)
+		SSGNC_WARN_UNUSED_RESULT;
+
+	bool load(const Int8 *path) SSGNC_WARN_UNUSED_RESULT;
+	bool read(std::istream *in) SSGNC_WARN_UNUSED_RESULT;
+
+	bool mmap(const Int8 *path) SSGNC_WARN_UNUSED_RESULT;
+	bool map(const void *ptr, UInt32 size) SSGNC_WARN_UNUSED_RESULT;
 
 private:
 	Int32 max_num_tokens_;
 	Int32 max_token_id_;
 	const FileEntry *entries_;
+	std::vector<FileEntry> entries_buf_;
 	FileMap file_map_;
 
+	bool readData(std::istream *in) SSGNC_WARN_UNUSED_RESULT;
 	bool mapData(const void *ptr, UInt32 size) SSGNC_WARN_UNUSED_RESULT;
 
 	// Disallows copies.
 	NgramIndex(const NgramIndex &);
 	NgramIndex &operator=(const NgramIndex &);
 };
+
+inline bool NgramIndex::FileEntry::set_file_id(Int32 file_id)
+{
+	if (file_id < 0 || file_id > MAX_FILE_ID)
+	{
+		SSGNC_ERROR << "Out of range file ID: " << file_id << std::endl;
+		return false;
+	}
+	file_id_ = static_cast<Int16>(file_id);
+	return true;
+}
+
+inline bool NgramIndex::FileEntry::set_offset(UInt32 offset)
+{
+	if (offset > MAX_OFFSET)
+	{
+		SSGNC_ERROR << "Too large offset: " << offset << std::endl;
+		return false;
+	}
+	offset_lo_ = static_cast<UInt16>(offset & 0xFFFF);
+	offset_hi_ = static_cast<UInt16>(offset >> 16);
+	return true;
+}
+
+inline bool NgramIndex::Entry::set_file_id(Int32 file_id)
+{
+	if (file_id < 0 || file_id > MAX_FILE_ID)
+	{
+		SSGNC_ERROR << "Out of range file ID: " << file_id << std::endl;
+		return false;
+	}
+	file_id_ = file_id;
+	return true;
+}
+
+inline bool NgramIndex::Entry::set_offset(UInt32 offset)
+{
+	if (offset > MAX_OFFSET)
+	{
+		SSGNC_ERROR << "Too large offset: " << offset << std::endl;
+		return false;
+	}
+	offset_ = offset;
+	return true;
+}
+
+inline bool NgramIndex::Entry::set_approx_size(Int64 approx_size)
+{
+	if (approx_size < 0 || approx_size > MAX_APPROX_SIZE)
+	{
+		SSGNC_ERROR << "Out of range approximate size: "
+			<< approx_size << std::endl;
+		return false;
+	}
+	approx_size_ = approx_size;
+	return true;
+}
 
 }  // namespace ssgnc
 

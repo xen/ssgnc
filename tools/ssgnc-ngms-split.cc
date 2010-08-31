@@ -56,9 +56,14 @@ bool readNgram(ssgnc::ByteReader *byte_reader,
 
 	if (!ssgnc::tools::readFreq(byte_reader, &ngram_buf, NULL))
 	{
-		if (byte_reader->bad())
-			SSGNC_ERROR << "ssgnc::tools::readFreq() failed" << std::endl;
+		SSGNC_ERROR << "ssgnc::tools::readFreq() failed" << std::endl;
 		return false;
+	}
+	else if (ngram_buf.empty())
+	{
+		ngram->pos = 0;
+		ngram->length = 0;
+		return true;
 	}
 
 	if (!ssgnc::tools::readTokens(num_tokens, vocab_dic,
@@ -188,6 +193,21 @@ bool splitNgrams(ssgnc::FilePath *file_path, ssgnc::UInt64 mem_limit)
 	Ngram ngram = { 0, 0 };
 	while (readNgram(&byte_reader, &tokens, &ngram))
 	{
+		if (ngram.length == 0)
+		{
+			if (!ngrams.empty())
+			{
+				if (!flushNgrams(file_path))
+				{
+					SSGNC_ERROR << "flushNgrams() failed" << std::endl;
+					return false;
+				}
+			}
+			std::cerr << "No. pairs: " << num_pairs
+				<< ", Total size: " << total_size << std::endl;
+			return true;
+		}
+
 		try
 		{
 			for (std::size_t i = 0; i < tokens.size(); ++i)
@@ -218,24 +238,7 @@ bool splitNgrams(ssgnc::FilePath *file_path, ssgnc::UInt64 mem_limit)
 		}
 	}
 
-	if (byte_reader.bad())
-	{
-		SSGNC_ERROR << "readNgram() failed" << std::endl;
-		return false;
-	}
-
-	if (!ngrams.empty())
-	{
-		if (!flushNgrams(file_path))
-		{
-			SSGNC_ERROR << "flushNgrams() failed" << std::endl;
-			return false;
-		}
-	}
-
-	std::cerr << "No. pairs: " << num_pairs
-		<< ", Total size: " << total_size << std::endl;
-	return true;
+	return false;
 }
 
 }  // namespace
@@ -254,7 +257,7 @@ int main(int argc, char *argv[])
 	if (!ssgnc::tools::parseNumTokens(argv[1], &num_tokens))
 		return 2;
 
-	if (!vocab_dic.open(argv[2]))
+	if (!vocab_dic.mmap(argv[2]))
 		return 3;
 
 	ssgnc::FilePath file_path;

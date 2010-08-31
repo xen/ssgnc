@@ -1,8 +1,10 @@
 #include "ssgnc.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <ctime>
 #include <sstream>
+#include <vector>
 
 int main()
 {
@@ -22,27 +24,7 @@ int main()
 	}
 
 	ssgnc::Reader reader;
-
-	assert(reader.is_open() == false);
-
-	assert(reader.bad() == true);
-	assert(reader.eof() == true);
-	assert(reader.fail() == true);
-	assert(reader.good() == false);
-
-	assert(reader.tell() == 0);
-
 	assert(reader.open(&stream));
-
-	assert(reader.is_open() == true);
-
-	assert(reader.bad() == false);
-	assert(reader.eof() == false);
-	assert(reader.fail() == false);
-	assert(reader.good() == true);
-
-	assert(reader.tell() == 0);
-
 	for (int i = 0; i < NUM_OBJS; ++i)
 	{
 		int value;
@@ -56,16 +38,6 @@ int main()
 	stream.seekg(0);
 
 	reader.close();
-
-	assert(reader.is_open() == false);
-
-	assert(reader.bad() == true);
-	assert(reader.eof() == true);
-	assert(reader.fail() == true);
-	assert(reader.good() == false);
-
-	assert(reader.tell() == 0);
-
 	assert(reader.open(&stream));
 	assert(reader.read(&values_clone[0], NUM_OBJS));
 	assert(reader.tell() == stream.tellg());

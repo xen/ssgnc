@@ -134,9 +134,9 @@ bool readLine(std::istream *stream, std::string *line)
 	return true;
 }
 
-bool readFreq(ByteReader *byte_reader, StringBuilder *buf, Int16 *freq)
+bool readFreq(ByteReader *reader, StringBuilder *buf, Int16 *freq)
 {
-	if (byte_reader == NULL)
+	if (reader == NULL)
 	{
 		SSGNC_ERROR << "Null pointer" << std::endl;
 		return false;
@@ -151,19 +151,47 @@ bool readFreq(ByteReader *byte_reader, StringBuilder *buf, Int16 *freq)
 	if (freq != NULL)
 		*freq = 0;
 
-	if (!byte_reader->readFreq(buf, freq))
+	Int32 byte;
+	Int32 temp_freq = 0;
+	while (reader->read(&byte))
 	{
-		if (byte_reader->bad())
-			SSGNC_ERROR << "ssgnc::ByteReader::readFreq() failed" << std::endl;
-		return false;
+		if (byte == EOF)
+		{
+			if (buf->empty())
+				return true;
+			SSGNC_ERROR << "Unexpected EOF" << std::endl;
+			return false;
+		}
+
+		if (!buf->append(static_cast<Int8>(byte)))
+		{
+			SSGNC_ERROR << "ssngc::StringBuilder::append() failed"
+				<< std::endl;
+			return false;
+		}
+
+		temp_freq = (temp_freq << 7) + (byte & 0x7F);
+		if (temp_freq > FreqHandler::MAX_ENCODED_FREQ)
+		{
+			SSGNC_ERROR << "Out of range freq: " << temp_freq << std::endl;
+			return false;
+		}
+		else if (byte < 0x80)
+		{
+			if (freq != NULL)
+				*freq = static_cast<Int16>(temp_freq);
+			return true;
+		}
 	}
-	return true;
+
+	SSGNC_ERROR << "ssgnc::ByteReader::read() failed" << std::endl;
+	return false;
 }
 
 bool readTokens(Int32 num_tokens, const VocabDic &vocab_dic,
-	ByteReader *byte_reader, StringBuilder *buf, std::vector<Int32> *tokens)
+	ByteReader *reader, StringBuilder *buf, std::vector<Int32> *tokens)
 {
-	if (byte_reader == NULL)
+	if (reader == NULL)
 	{
 		SSGNC_ERROR << "Null pointer" << std::endl;
 		return false;
@@ -175,42 +203,60 @@ bool readTokens(Int32 num_tokens, const VocabDic &vocab_dic,
 	}
 
 	if (tokens != NULL)
+		tokens->clear();
+
+	Int32 byte;
+	Int32 token = 0;
+	Int32 token_count = 0;
+	while (reader->read(&byte))
 	{
-		try
+		if (byte == EOF)
 		{
-			tokens->resize(num_tokens);
-		}
-		catch (...)
-		{
-			SSGNC_ERROR << "std::vector<ssgnc::Int32>::resize() failed: "
-				<< sizeof(Int32) << " * " << num_tokens << std::endl;
+			SSGNC_ERROR << "Unexpected EOF" << std::endl;
 			return false;
 		}
-	}
 
-	for (Int32 i = 0; i < num_tokens; ++i)
-	{
-		Int32 token;
-		if (!byte_reader->readToken(buf, &token))
+		if (!buf->append(static_cast<Int8>(byte)))
 		{
-			SSGNC_ERROR << "ssgnc::ByteReader::readToken() failed"
+			SSGNC_ERROR << "ssngc::StringBuilder::append() failed"
 				<< std::endl;
 			return false;
 		}
 
-		if (static_cast<UInt32>(token) >= vocab_dic.num_keys())
+		token = (token << 7) + (byte & 0x7F);
+		if (byte < 0x80)
 		{
-			SSGNC_ERROR << "Unknown token: " << token << std::endl;
-			return false;
-		}
+			if (static_cast<UInt32>(token) >= vocab_dic.num_keys())
+			{
+				SSGNC_ERROR << "Unknown token: " << token << std::endl;
+				return false;
+			}
 
-		if (tokens != NULL)
-			(*tokens)[i] = token;
+			if (tokens != NULL)
+			{
+				try
+				{
+					tokens->push_back(token);
+				}
+				catch (...)
+				{
+					SSGNC_ERROR << "std::vector<ssgnc::Int32>::push_back() "
+						"failed: " << tokens->size() << std::endl;
+					return false;
+				}
+			}
+			token = 0;
+
+			if (++token_count == num_tokens)
+				return true;
+		}
 	}
-	return true;
+
+	SSGNC_ERROR << "ssgnc::ByteReader::read() failed" << std::endl;
+	return false;
 }
 
-bool initFilePath(const String &dirname, const String &file_ext,
+bool initFilePath(const String &temp_dir, const String &file_ext,
 	Int32 num_tokens, FilePath *file_path)
 {
 	if (num_tokens < MIN_NUM_TOKENS || num_tokens > MAX_NUM_TOKENS)
@@ -224,25 +270,45 @@ bool initFilePath(const String &dirname, const String &file_ext,
 		return false;
 	}
 
-	StringBuilder basename;
-	if (!basename.appendf("%dgm-%%04d.%.*s", num_tokens,
-		file_ext.length(), file_ext.ptr()))
+	Int8 delim = '/';
+	if (temp_dir.contains('\\'))
+		delim = '\\';
+
+	StringBuilder format;
+
+	UInt32 delim_pos;
+	if (temp_dir.last(delim, &delim_pos) && delim_pos == temp_dir.length() - 1)
 	{
-		SSGNC_ERROR << "ssgnc::StringBuilder::appendf() failed"
-			<< std::endl;
-		return false;
+		if (!format.appendf("%.*s%dgm-%%04d.%.*s", temp_dir.length(),
+			temp_dir.ptr(), num_tokens, file_ext.length(), file_ext.ptr()))
+		{
+			SSGNC_ERROR << "ssgnc::StringBuilder::appendf() failed"
+				<< std::endl;
+			return false;
+		}
+	}
+	else
+	{
+		if (!format.appendf("%.*s%c%dgm-%%04d.%.*s",
+			temp_dir.length(), temp_dir.ptr(), delim,
+			num_tokens, file_ext.length(), file_ext.ptr()))
+		{
+			SSGNC_ERROR << "ssgnc::StringBuilder::appendf() failed"
+				<< std::endl;
+			return false;
+		}
 	}
 
-	if (!file_path->open(dirname, basename.str()))
+	if (!file_path->open(format.str()))
 	{
 		SSGNC_ERROR << "ssgnc::FilePath::open() failed: "
-			<< dirname << ", " << basename << std::endl;
+			<< format << std::endl;
 		return false;
 	}
 	return true;
 }
 
-bool openFiles(const String &dirname, const String &file_ext,
+bool openFiles(const String &temp_dir, const String &file_ext,
 	Int32 num_tokens, std::vector<std::ifstream *> *files)
 {
 	if (num_tokens < MIN_NUM_TOKENS || num_tokens > MAX_NUM_TOKENS)
@@ -259,10 +325,10 @@ bool openFiles(const String &dirname, const String &file_ext,
 	closeFiles(files);
 
 	FilePath file_path;
-	if (!initFilePath(dirname, file_ext, num_tokens, &file_path))
+	if (!initFilePath(temp_dir, file_ext, num_tokens, &file_path))
 	{
 		SSGNC_ERROR << "ssgnc::tools::initFilePath() failed: "
-			<< dirname << ", " << file_ext << ", " << num_tokens << std::endl;
+			<< temp_dir << ", " << file_ext << ", " << num_tokens << std::endl;
 		return false;
 	}
 

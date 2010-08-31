@@ -4,17 +4,30 @@ namespace {
 
 ssgnc::VocabDic vocab_dic;
 
-bool initIndexFilePath(const ssgnc::String &index_dir,
-	ssgnc::FilePath *file_path)
+bool initIndexFilePath(const char *index_dir, ssgnc::FilePath *file_path)
 {
-	ssgnc::StringBuilder basename;
-	if (!basename.append("%dgms.idx"))
+	ssgnc::StringBuilder format;
+	if (!format.append(index_dir))
+	{
+		SSGNC_ERROR << "ssgnc::StringBuilder::append() failed" << std::endl;
+		return false;
+	}
+	else if (format.length() > 0 && format[format.length() - 1] != '/')
+	{
+		if (!format.append('/'))
+		{
+			SSGNC_ERROR << "ssgnc::StringBuilder::append() failed" << std::endl;
+			return false;
+		}
+	}
+
+	if (!format.append("%dgms.idx"))
 	{
 		SSGNC_ERROR << "ssgnc::StringBuilder::append() failed" << std::endl;
 		return false;
 	}
 
-	if (!file_path->open(index_dir, basename.str()))
+	if (!file_path->open(format.str()))
 	{
 		SSGNC_ERROR << "ssgnc::FilePath::open() failed" << std::endl;
 		return false;
@@ -26,7 +39,7 @@ bool initIndexFilePath(const ssgnc::String &index_dir,
 	return true;
 }
 
-bool openIndexFiles(const ssgnc::String &index_dir,
+bool openIndexFiles(const char *index_dir,
 	std::vector<std::ifstream *> *files)
 {
 	ssgnc::FilePath file_path;
@@ -180,7 +193,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (!vocab_dic.open(argv[1]))
+	if (!vocab_dic.mmap(argv[1]))
 		return 2;
 
 	std::vector<std::ifstream *> files;

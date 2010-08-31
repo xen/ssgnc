@@ -342,7 +342,7 @@ int main(int argc, char *argv[])
 	if (!ssgnc::tools::parseNumTokens(argv[1], &num_tokens))
 		return 2;
 
-	if (!vocab_dic.open(argv[2], ssgnc::FileMap::READ_FILE))
+	if (!vocab_dic.load(argv[2]))
 		return 3;
 
 	ssgnc::FilePath file_path;

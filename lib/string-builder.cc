@@ -14,12 +14,12 @@ bool StringBuilder::appendf(const Int8 *format, ...)
 		format, ap_copy);
 	if (length < 0)
 		SSGNC_ERROR << "std::vsnprintf() failed: " << format << std::endl;
-	else if (length_ + length >= size_)
+	else if (length_ + length > size_)
 	{
-		if (!resizeBuf(length_ + length + 1))
+		if (!resizeBuf(length_ + length))
 		{
 			SSGNC_ERROR << "ssgnc::StringBuilder::resizeBuf() failed: "
-				<< (length_ + length + 1) << std::endl;
+				<< (length_ + length) << std::endl;
 			length = -1;
 		}
 		else

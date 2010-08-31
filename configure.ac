@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-AC_INIT([ssgnc], [0.4.5], [syata@acm.org])
+AC_INIT([ssgnc], [0.4.1], [syata@acm.org])
 AC_CONFIG_SRCDIR([include/ssgnc.h])
 AM_INIT_AUTOMAKE
 
@@ -31,6 +31,5 @@ AC_CHECK_FUNCS([strtol] [munmap] [localtime_r])
 
 # Checks for library functions.
 
-AC_CONFIG_FILES([Makefile] [lib/Makefile] [tools/Makefile]
-	[cgi/Makefile] [tests/Makefile])
+AC_CONFIG_FILES([Makefile lib/Makefile tools/Makefile tests/Makefile])
 AC_OUTPUT

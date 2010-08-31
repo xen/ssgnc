@@ -23,11 +23,6 @@ public:
 
 	bool is_open() const { return ptr_ != NULL; }
 
-	bool bad() const { return ptr_ == NULL; }
-	bool eof() const { return total_ == size_; }
-	bool good() const { return total_ < size_; }
-	bool fail() const { return ptr_ == NULL || total_ == size_; }
-
 	UInt32 tell() const { return total_; }
 
 	enum { MAX_SIZE = 0x7FFFFFFF };
@@ -60,7 +55,6 @@ bool Mapper::map(const T **ptr)
 	{
 		SSGNC_ERROR << "No more input: " << total_
 			<< " + " << sizeof(T) << std::endl;
-		total_ = size_;
 		return false;
 	}
 
@@ -90,7 +84,6 @@ bool Mapper::map(const T **ptr, UInt32 num_objs)
 	{
 		SSGNC_ERROR << "No more input: " << total_
 			<< " + " << sizeof(T) << " * " << num_objs << std::endl;
-		total_ = size_;
 		return false;
 	}
 

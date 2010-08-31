@@ -22,11 +22,6 @@ public:
 
 	bool is_open() const { return stream_ != NULL; }
 
-	bool bad() const { return stream_ == NULL || stream_->bad(); }
-	bool eof() const { return stream_ == NULL || stream_->eof(); }
-	bool good() const { return stream_ != NULL && stream_->good(); }
-	bool fail() const { return stream_ == NULL || stream_->fail(); }
-
 	UInt32 tell() const { return total_; }
 
 	enum { MAX_TOTAL = 0x7FFFFFFF };

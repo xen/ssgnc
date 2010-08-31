@@ -1,6 +1,7 @@
 #include "ssgnc.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <ctime>
 #include <sstream>
 
@@ -9,14 +10,10 @@ int main()
 	static const ssgnc::Int32 MAX_NUM_TOKENS = 4;
 	static const ssgnc::Int32 MAX_TOKEN_ID = 1023;
 
-	std::ofstream file("NGRAM_INDEX", std::ios::binary);
-	assert(file.good());
+	std::stringstream stream;
 
-	ssgnc::Writer writer;
-	assert(writer.open(&file));
-
-	assert(writer.write(MAX_NUM_TOKENS));
-	assert(writer.write(MAX_TOKEN_ID));
+	assert(ssgnc::Writer(&stream).write(MAX_NUM_TOKENS));
+	assert(ssgnc::Writer(&stream).write(MAX_TOKEN_ID));
 
 	std::vector<ssgnc::NgramIndex::FileEntry> entries;
 	for (ssgnc::Int32 i = 1; i <= MAX_NUM_TOKENS; ++i)
@@ -26,7 +23,7 @@ int main()
 		assert(ngram_offset.set_offset(0));
 		entries.push_back(ngram_offset);
 
-		assert(writer.write(ngram_offset));
+		assert(ssgnc::Writer(&stream).write(ngram_offset));
 	}
 	std::size_t index = 0;
 	for (ssgnc::Int32 i = 0; i <= MAX_TOKEN_ID; ++i)
@@ -52,7 +49,7 @@ int main()
 				static_cast<ssgnc::UInt32>(total & 0x7FFFFFFF)));
 			entries.push_back(ngram_offset);
 
-			assert(writer.write(ngram_offset));
+			assert(ssgnc::Writer(&stream).write(ngram_offset));
 		}
 	}
 
@@ -61,9 +58,7 @@ int main()
 	assert(ngram_index.max_num_tokens() == 0);
 	assert(ngram_index.max_token_id() == 0);
 
-	file.close();
-
-	assert(ngram_index.open("NGRAM_INDEX"));
+	assert(ngram_index.read(&stream));
 
 	assert(ngram_index.max_num_tokens() == MAX_NUM_TOKENS);
 	assert(ngram_index.max_token_id() == MAX_TOKEN_ID);
@@ -84,12 +79,8 @@ int main()
 		}
 	}
 
-	assert(ngram_index.close());
-
-	assert(ngram_index.max_num_tokens() == 0);
-	assert(ngram_index.max_token_id() == 0);
-
-	assert(ngram_index.open("NGRAM_INDEX", ssgnc::FileMap::READ_FILE));
+	std::string str = stream.str();
+	assert(ngram_index.map(str.data(), str.size()));
 
 	assert(ngram_index.max_num_tokens() == MAX_NUM_TOKENS);
 	assert(ngram_index.max_token_id() == MAX_TOKEN_ID);
@@ -110,7 +101,7 @@ int main()
 		}
 	}
 
-	assert(ngram_index.close());
+	ngram_index.clear();
 
 	assert(ngram_index.max_num_tokens() == 0);
 	assert(ngram_index.max_token_id() == 0);

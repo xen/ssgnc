@@ -139,13 +139,29 @@ bool sortKeys(std::vector<KeyFreqPair> *key_freq_pairs,
 	return true;
 }
 
-bool buildVocabDic(const ssgnc::Int8 *path,
-	const std::vector<ssgnc::String> &keys, ssgnc::VocabDic *vocab_dic)
+bool buildVocabDic(const std::vector<ssgnc::String> &keys,
+	ssgnc::VocabDic *vocab_dic)
 {
-	if (!ssgnc::VocabDic::build(path, keys))
+	if (!vocab_dic->build(&keys[0], static_cast<ssgnc::UInt32>(keys.size())))
 	{
 		SSGNC_ERROR << "ssgnc::VocabDic::build() failed: "
-			<< path << ", " << keys.size() << std::endl;
+			<< keys.size() << std::endl;
+		return false;
+	}
+	std::cerr << "Total size: " << vocab_dic->total_size() << std::endl;
+	return true;
+}
+
+bool writeVocabDic(const ssgnc::VocabDic &vocab_dic)
+{
+	if (!vocab_dic.write(&std::cout))
+	{
+		SSGNC_ERROR << "ssgnc::VocabDic::write() failed" << std::endl;
+		return false;
+	}
+	else if (!std::cout.flush())
+	{
+		SSGNC_ERROR << "std::ostream::flush() failed" << std::endl;
 		return false;
 	}
 	return true;
@@ -157,9 +173,9 @@ int main(int argc, char *argv[])
 {
 	ssgnc::tools::initIO();
 
-	if (argc != 2)
+	if (argc != 1)
 	{
-		std::cerr << "Usage: " << argv[0] << " VOCAB_DIC" << std::endl;
+		std::cerr << "Usage: " << argv[0] << std::endl;
 		return 1;
 	}
 
@@ -172,8 +188,11 @@ int main(int argc, char *argv[])
 		return 3;
 
 	ssgnc::VocabDic vocab_dic;
-	if (!buildVocabDic(argv[1], keys, &vocab_dic))
+	if (!buildVocabDic(keys, &vocab_dic))
 		return 4;
+
+	if (!writeVocabDic(vocab_dic))
+		return 5;
 
 	return 0;
 }

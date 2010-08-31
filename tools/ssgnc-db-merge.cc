@@ -13,6 +13,8 @@ bool readNgram(ssgnc::ByteReader *byte_reader, ssgnc::Int16 *freq,
 		SSGNC_ERROR << "ssgnc::tools::readFreq() failed" << std::endl;
 		return false;
 	}
+	else if (ngram_buf->empty())
+		return false;
 
 	if (*freq == 0)
 		return true;
@@ -92,7 +94,14 @@ bool mergeDatabase(std::vector<std::ifstream *> *files)
 
 	for (std::size_t file_id = 0; file_id < files->size(); ++file_id)
 	{
-		if (!readers[file_id].eof())
+		ssgnc::Int32 byte;
+		if (!readers[file_id].read(&byte))
+		{
+			SSGNC_ERROR << "ssgnc::Reader::read() failed" << std::endl;
+			delete [] readers;
+			return false;
+		}
+		else if (byte != EOF)
 		{
 			SSGNC_ERROR << "Extra bytes" << std::endl;
 			delete [] readers;
@@ -130,7 +139,7 @@ int main(int argc, char *argv[])
 	if (!ssgnc::tools::parseNumTokens(argv[1], &num_tokens))
 		return 2;
 
-	if (!vocab_dic.open(argv[2]))
+	if (!vocab_dic.mmap(argv[2]))
 		return 3;
 
 	std::vector<std::ifstream *> files;

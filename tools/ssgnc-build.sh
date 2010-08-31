@@ -1,17 +1,5 @@
 #! /bin/sh
 
-ShowUsage()
-{
-	echo "Usage: DATA_DIR INDEX_DIR [TEMP_DIR] [CHECKER]"
-	echo
-	echo "DATA_DIR: DATA_DIR/Ngms/Ngm-KKKK [.gz, .xz]"
-	echo "INDEX_DIR: INDEX_DIR/vocab.dic, ngms.idx, Ngm-KKKK.db"
-	echo "TEMP_DIR: TEMP_DIR/Ngm-KKKK.bin, Ngm-KKKK.part, Ngms.idx"
-	echo "CHECKER: time, valgrind"
-	echo "  time: time -f 'real %E, user %U, sys %S'"
-	echo "  valgrind: valgrind --leak-check=full"
-}
-
 CheckCommands()
 {
 	for cmd in $@
@@ -68,7 +56,7 @@ BuildVocabDic()
 	echo
 	echo "ssgnc-vocab-dic-build"
 	$filter "$DATA_DIR"/1gms/1gm-* | \
-		$checker ssgnc-vocab-dic-build "$INDEX_DIR/vocab.dic"
+		ssgnc-vocab-dic-build > "$INDEX_DIR/vocab.dic"
 	if [ $? -ne 0 ]
 	then
 		exit 302
@@ -99,8 +87,7 @@ BuildIndex()
 	echo
 	echo "ssgnc-ngms-encode"
 	$filter "$input_dir/$num_tokens""gm-"* | \
-		$checker ssgnc-ngms-encode \
-		$num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR"
+		ssgnc-ngms-encode $num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR"
 	if [ $? -ne 0 ]
 	then
 		exit 402
@@ -108,10 +95,8 @@ BuildIndex()
 
 	echo
 	echo "ssgnc-ngms-merge | ssgnc-ngms-split"
-	$checker ssgnc-ngms-merge \
-		$num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR" | \
-		$checker ssgnc-ngms-split \
-		$num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR"
+	ssgnc-ngms-merge $num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR" | \
+		ssgnc-ngms-split $num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR"
 	if [ $? -ne 0 ]
 	then
 		exit 403
@@ -119,11 +104,9 @@ BuildIndex()
 
 	echo
 	echo "ssgnc-db-merge | ssgnc-db-split"
-	$checker ssgnc-db-merge \
-		$num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR" | \
-		$checker ssgnc-db-split \
-		$num_tokens "$INDEX_DIR/vocab.dic" "$INDEX_DIR" \
-		> "$TEMP_DIR/$num_tokens""gms.idx"
+	ssgnc-db-merge $num_tokens "$INDEX_DIR/vocab.dic" "$TEMP_DIR" | \
+		ssgnc-db-split $num_tokens "$INDEX_DIR/vocab.dic" "$INDEX_DIR" \
+			> "$TEMP_DIR/$num_tokens""gms.idx"
 	if [ $? -ne 0 ]
 	then
 		exit 404
@@ -146,8 +129,8 @@ BuildIndices()
 
 	echo
 	echo "ssgnc-idx-merge"
-	$checker ssgnc-idx-merge \
-		"$INDEX_DIR/vocab.dic" "$TEMP_DIR" > "$INDEX_DIR/ngms.idx"
+	ssgnc-idx-merge "$INDEX_DIR/vocab.dic" "$TEMP_DIR" \
+		> "$INDEX_DIR/ngms.idx"
 	if [ $? -ne 0 ]
 	then
 		exit 500
@@ -164,48 +147,30 @@ then
 	exit $?
 fi
 
-if [ $# -lt 2 -o $# -gt 4 ]
+if [ $# -lt 2 -o $# -gt 3 ]
 then
-	ShowUsage
+	echo "Usage: DATA_DIR INDEX_DIR [TEMP_DIR]"
 	exit 1
 fi
 
 DATA_DIR="$1"
 INDEX_DIR="$2"
 TEMP_DIR="$2"
-CHECKER=""
 if [ $# -gt 2 ]
 then
 	TEMP_DIR="$3"
 fi
 
-if [ $# -gt 3 ]
-then
-	if [ "$4" = "time" ]
-	then
-		checker="time -p"
-	elif [ "$4" = "valgrind" ]
-	then
-		checker="valgrind --leak-check=full"
-	else
-		echo "Invalid CHECKER option: $4"
-		echo
-		ShowUsage
-		exit 2
-	fi
-fi
-
 echo "DATA_DIR: $DATA_DIR"
 echo "INDEX_DIR: $INDEX_DIR"
 echo "TEMP_DIR: $TEMP_DIR"
-echo "CHECKER: $CHECKER"
 
 if [ ! -d "$DATA_DIR" ]
 then
 	echo
 	echo "Error: $DATA_DIR: No such directory"
 
-	exit 3
+	exit 2
 fi
 
 if [ ! -d "$INDEX_DIR" ]
@@ -217,7 +182,7 @@ then
 	mkdir "$INDEX_DIR"
 	if [ $? -ne 0 ]
 	then
-		exit 4
+		exit 3
 	fi
 fi
 
@@ -232,7 +197,7 @@ then
 	mkdir "$TEMP_DIR"
 	if [ $? -ne 0 ]
 	then
-		exit 5
+		exit 4
 	fi
 fi
 

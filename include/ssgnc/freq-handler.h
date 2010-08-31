@@ -38,7 +38,7 @@ private:
 
 inline bool FreqHandler::encode(Int64 freq, Int16 *encoded_freq) const
 {
-	if (freq <= 0 || freq > MAX_FREQ)
+	if (freq < 0 || freq > MAX_FREQ)
 	{
 		SSGNC_ERROR << "Out of range freq: " << freq << std::endl;
 		return false;
@@ -80,10 +80,10 @@ inline bool FreqHandler::decode(Int16 encoded_freq, Int64 *freq) const
 		1000000000000000LL
 	};
 
-	if (encoded_freq <= 0 || encoded_freq > MAX_ENCODED_FREQ ||
-		(encoded_freq & LOWER_MASK) > MAX_RAW_FREQ)
+	if (encoded_freq <= 0 || encoded_freq > MAX_ENCODED_FREQ)
 	{
-		SSGNC_ERROR << "Out of range freq: " << encoded_freq << std::endl;
+		SSGNC_ERROR << "Out of range encoded freq: "
+			<< encoded_freq << std::endl;
 		return false;
 	}
 	else if (freq == NULL)

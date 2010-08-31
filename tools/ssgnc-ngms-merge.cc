@@ -34,11 +34,10 @@ bool readNgram(HeapUnit *heap_unit)
 	if (!ssgnc::tools::readFreq(&heap_unit->byte_reader, &heap_unit->ngram,
 		&heap_unit->freq))
 	{
-		if (heap_unit->byte_reader.bad())
-			SSGNC_ERROR << "ssgnc::tools::readFreq() failed" << std::endl;
+		SSGNC_ERROR << "ssgnc::tools::readFreq() failed" << std::endl;
 		return false;
 	}
-	else if (heap_unit->freq == 0)
+	else if (heap_unit->ngram.empty())
 		return true;
 
 	if (!ssgnc::tools::readTokens(num_tokens, vocab_dic,
@@ -66,13 +65,12 @@ bool mergeFiles(std::vector<std::ifstream *> *files)
 		if (!heap_units[i].byte_reader.open((*files)[i], BYTE_READER_BUF_SIZE))
 		{
 			SSGNC_ERROR << "ssngc::ByteReader::open() failed: " << std::endl;
-			delete [] heap_units;
 			return false;
 		}
 
-		if (!readNgram(&heap_units[i]))
+		if (!readNgram(&heap_units[i]) || heap_units[i].ngram.empty())
 		{
-			SSGNC_ERROR << "readNgram() failed: " << i << std::endl;
+			SSGNC_ERROR << "readNgrams() failed: " << i << std::endl;
 			delete [] heap_units;
 			return false;
 		}
@@ -81,7 +79,6 @@ bool mergeFiles(std::vector<std::ifstream *> *files)
 		{
 			SSGNC_ERROR << "ssngc::HeapQueue::push() failed: "
 				<< heap_queue.size() << std::endl;
-			delete [] heap_units;
 			return false;
 		}
 	}
@@ -91,9 +88,7 @@ bool mergeFiles(std::vector<std::ifstream *> *files)
 		HeapUnit *heap_unit;
 		if (!heap_queue.top(&heap_unit))
 		{
-			SSGNC_ERROR << "ssgnc::HeapQueue<HeapUnit *>::top() failed"
-				<< std::endl;
-			delete [] heap_units;
+			SSGNC_ERROR << "ssgnc::HeapQueue::top() failed" << std::endl;
 			return false;
 		}
 
@@ -107,7 +102,7 @@ bool mergeFiles(std::vector<std::ifstream *> *files)
 		++num_ngrams;
 		total_size += heap_unit->ngram.length();
 
-		if (!readNgram(heap_unit) && heap_unit->byte_reader.bad())
+		if (!readNgram(heap_unit))
 		{
 			SSGNC_ERROR << "readNgrams() failed" << std::endl;
 			delete [] heap_units;
@@ -150,7 +145,7 @@ int main(int argc, char *argv[])
 	if (!ssgnc::tools::parseNumTokens(argv[1], &num_tokens))
 		return 2;
 
-	if (!vocab_dic.open(argv[2]))
+	if (!vocab_dic.mmap(argv[2]))
 		return 3;
 
 	std::vector<std::ifstream *> files;

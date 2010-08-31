@@ -1,5 +1,7 @@
 #include "tools-common.h"
 
+#include <string>
+
 namespace {
 
 void lookupKeys(std::istream *in, const ssgnc::VocabDic &vocab_dic)
@@ -23,14 +25,13 @@ void lookupKeys(std::istream *in, const ssgnc::VocabDic &vocab_dic)
 		long key_id_l = std::strtol(key.ptr(), &end_of_key_id, 10);
 		if (*end_of_key_id == '\0')
 		{
-			std::cout << ", vocab_dic[" << key_id << "]: ";
+			std::cout << ", vocab_dic[" << key_id_l << "]: ";
 			if (key_id_l < 0 || key_id_l > MAX_KEY_ID)
 				std::cout << "out of range";
 			else
 			{
-				key_id = static_cast<ssgnc::Int32>(key_id_l);
 				ssgnc::String match;
-				if (vocab_dic.find(key_id, &match))
+				if (vocab_dic.find(key_id_l, &match))
 					std::cout << match;
 				else
 					std::cout << "out of range";
@@ -55,7 +56,7 @@ int main(int argc, char *argv[])
 	}
 
 	ssgnc::VocabDic vocab_dic;
-	if (!vocab_dic.open(argv[1]))
+	if (!vocab_dic.mmap(argv[1]))
 		return 2;
 
 	if (argc == 2)

@@ -4,6 +4,8 @@
 #include <cstring>
 #include <sstream>
 
+#include <iostream>
+
 int main()
 {
 	const char *src = "This is a pen.";
