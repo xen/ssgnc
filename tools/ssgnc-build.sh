@@ -117,6 +117,12 @@ BuildIndex()
 		exit 403
 	fi
 
+	rm -f "$TEMP_DIR/$num_tokens""gm-"*".bin"
+	if [ $? -ne 0 ]
+	then
+		exit 404
+	fi
+
 	echo
 	echo "ssgnc-db-merge | ssgnc-db-split"
 	$checker ssgnc-db-merge \
@@ -126,7 +132,13 @@ BuildIndex()
 		> "$TEMP_DIR/$num_tokens""gms.idx"
 	if [ $? -ne 0 ]
 	then
-		exit 404
+		exit 405
+	fi
+
+	rm -f "$TEMP_DIR/$num_tokens""gm-"*".part"
+	if [ $? -ne 0 ]
+	then
+		exit 406
 	fi
 }
 
@@ -152,6 +164,18 @@ BuildIndices()
 	then
 		exit 500
 	fi
+
+	num_tokens=1
+	while [ -f "$TEMP_DIR/$num_tokens""gms.idx" ]
+	do
+		rm -f "$TEMP_DIR/$num_tokens""gms.idx"
+		if [ $? -ne 0 ]
+		then
+			exit 501
+		fi
+
+		num_tokens=`expr $num_tokens + 1`
+	done
 }
 
 CheckCommands \

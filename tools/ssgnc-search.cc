@@ -66,23 +66,23 @@ void searchQueries(std::istream *in, const ssgnc::Database &database,
 
 int main(int argc, char *argv[])
 {
-	if (argc < 2)
-	{
-		std::cerr << "Usage: " << argv[0]
-			<< " [OPTION]... [INDEX_DIR] [FILE]...\n\n";
-		ssgnc::Query::showOptions(&std::cerr);
-		return 1;
-	}
-
 	ssgnc::Query query;
 	query.set_max_num_results(10);
 	query.set_io_limit(1 << 20);
 
 	if (!query.parseOptions(&argc, argv))
+		return 1;
+
+	if (argc < 2)
+	{
+		std::cerr << "Usage: " << argv[0]
+			<< " [OPTION]... INDEX_DIR [FILE]...\n\n";
+		ssgnc::Query::showOptions(&std::cerr);
 		return 2;
+	}
 
 	ssgnc::Database database;
-	if (!database.open((argc > 1) ? argv[1] : ""))
+	if (!database.open(argv[1]))
 		return 3;
 
 	if (argc == 2)
