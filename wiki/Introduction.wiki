@@ -1,112 +1,145 @@
-#summary Search System for Google N-gram Corpus
+#summary Search System for Giga-scale N-gram Corpus
 #labels Phase-Requirements,Phase-Design,Featured
 
 = Introduction =
 
-The *ssgnc* is a Search System for Google N-gram Corpus.
-This system has been designed for Japanese and English Google N-gram Corpora,
-however, the *ssgnc* is applicable to other n-gram corpora.
+SSGNC (Search System for Giga-scale N-gram Corpus) is a search system desgiend for large-scale N-gram corpus, such as Japanese/English Google N-gram Corpus.
 
 == Overview ==
 
-The *ssgnc* builds inverted databases (index) for large-scale n-grams
-and provides interfaces for searching n-grams.
-Users can find n-grams that contain specified unigrams (boolean AND search).
-Also, the *ssgnc* can handle a query with a wildcard *`*`* that
-matches an arbitrary unigram.
-The search methods and examples are as follows:
+SSGNC builds a database from N-gram corpus, and the database enables searches with the following 4 kinds of queries.
 
- * Search methods
-  * Boolean AND search
-   * N-grams that contain both "apple" and "orange".
-  * Ordered boolean AND search
-   * N-grams that contain both "apple" and "orange" in order.
-  * Phrase search
-   * N-grams that contain "apple orange".
-  * Wildcard search
-   * N-grams that matches "`*` similar to `*` `*`".
+ * Query types
+  * *Unordered*: Unordered boolean AND query
+   * Search for N-grams which contain "apple" and "orange".
+  * *Ordered*: Ordered boolean AND query
+   * Search for N-grams which contain "apple" and "orange" in order.
+  * *Phrase*: Phrase query
+   * Search for N-grams which contain "apple orange".
+  * *Fixed*: Fixed length query
+   * Search for "apple orange".
 
-Other commands such as *grep* will realize more detailed searches.
-
-# The indices of this system supports only searches for
-n-grams containing an arbitrary unigram.
+Users can test the search features through the search command *ssgnc-search* or the CGI program *ssgnc-cgi*. Also, due to the SSGNC core C++ library, the search features can be embedded into other applications.
 
 ----
 
-== System Requirement ==
+== System Requirements ==
 
-The *ssgnc* has been developed for Linux systems and
-I have tested it on a 64-bit Ubuntu server.
-This system does not work well on a 32-bit system,
-because it uses mmap() for large files whose sizes are greater than 2GB files.
+SSGNC is designed for Linux and tested on 32/64-bit Ubuntu. SSGNC-0.4.0 or later works on both 32-bit Linux and 64-bit Linux, but SSGNC-0.3.0 or earlier works only on 64-bit Linux.
 
-I'm not sure whether the *ssgnc* works on Max OSX and other operating systems.
+Note: The database format of SSGNC-0.4.0 or later is different from that of SSGNC-0.3.0 or earlier. And because of the difference, databases for SSGNC-0.3.0 or earlier don't work well with SSGNC-0.4.0 or later.
 
 ----
 
-== Required Tool and Libraries ==
+== Installation ==
 
-The *ssgnc* requires the following tools and libraries.
+The following tools are required to build SSGNC.
 
  * g++
  * make
- * libboost-dev
- * dawgdic
-  * http://code.google.com/p/dawgdic/
+
+Then, what you have to do is just the well-known steps as follows:
+
+{{{
+ ./configure
+ make
+ make check
+ make install
+}}}
+
+Note: SSGNC-0.3.0 or earlier requires the Boost C++ library and dawgdic.
 
 ----
 
 = How to Use =
 
-== Indexing ==
+== Database construction ==
 
-The *ssgnc* builds indices from compressed Google N-gram Corpus.
+*ssgnc-build.sh* is the script to build database files from N-gram corpus. The input directory must have N-gram files named Ngms/Ngm-KKKK, same as Google N-gram Corpus. And if the N-gram files are compressed by gzip or xz, *ssgnc-build.sh* automatically decompress them.
 
- ssgnc-build-index.sh InputDir OutputDir
+{{{
+$ ssgnc-build.sh DATA_DIR INDEX_DIR [TEMP_DIR] [CHECKER]
+}}}
 
- * InputDir: specifies a directory *data* copied from DVDs.
- * OutputDir: specifies a directory to put result indices.
+ * DATA_DIR: Input directory
+  * Builds database files from DATA_DIR/Ngms/Ngm-KKKK.
+  * If the N-gram files are compressed, in this case the name of N-gram files is DATA_DIR/Ngms/Ngm-KKKK.gz or DATA_DIR/Ngms/Ngm-KKKK.xz, those files are automatically decompressed.
+ * INDEX_DIR: Output directory
+  * Outputs database files as INDEX_DIR/vocab.dic, INDEX_DIR/ngms.idx, INDEX_DIR/Ngms-KKKK.db.
+ * TEMP_DIR: Temporary directory
+  * Puts temporary files in TEMP_DIR.
+  * If omitted, INDEX_DIR is used.
+ * CHECKER: Options for debug
+  * Options for time measurement and memory leak checks.
 
- e.g.) ssgnc-build-index.sh ./data ./index
+The database size is as large as the size of the input N-gram corpus. In addition, *ssgnc-build.sh* makes temporary files. Please confirm that there is an enough disk space. If the disk space is twice as large as the input N-gram corpus, the database construction will be completed successfully.
 
-The size of indices for English and Japanese
-Google N-gram Corpora are as follows:
+{{{
+$ ssgnc-build.sh
+Usage: DATA_DIR INDEX_DIR [TEMP_DIR] [CHECKER]
 
- * Index size
-  * English Google N-gram Corpus: 116GB
-  * Japanese Google N-gram Corpus: 145GB
-
-Please confirm that there is more than 200GB disk space,
-because the indexing process requires extra disk space for temporary files.
-
-----
-
-== Searching ==
-
-The *ssgnc* provides a command for searching n-grams by using indices.
-
- ssgnc-search -d DataDir
-
- * DataDir: specifies a directory of indices.
-
- e.g.) ssgnc-search -d /home/ssgnc/ja
-
-Please see *ssgnc-search -h* for other options.
+DATA_DIR: DATA_DIR/Ngms/Ngm-KKKK [.gz, .xz]
+INDEX_DIR: INDEX_DIR/vocab.dic, ngms.idx, Ngm-KKKK.db
+TEMP_DIR: TEMP_DIR/Ngm-KKKK.bin, Ngm-KKKK.part, Ngms.idx
+CHECKER: time, valgrind
+  time: time -f 'real %E, user %U, sys %S'
+  valgrind: valgrind --leak-check=full
+}}}
 
 ----
 
-== CGI ==
+== Search command ==
 
-The *ssgnc* has a perl script for generating a simple perl script for CGI.
+The search command of SSGNC is *ssgnc-search*.
 
- ssgnc-gen-cgi.pl DataDir > CgiPerl
+{{{
+$ ssgnc-search [OPTION]... INDEX_DIR [FILE]...
+}}}
 
- * DataDir: specifies a directory of indices.
- * CgiPerl: specifies an output file.
+ * OPTION: Search options
+  * Shows the list of options if INDEX_DIR is not given.
+ * INDEX_DIR: Directory path where database files exist
+  * Opens INDEX_DIR/vocab.dic, INDEX_DIR/ngms.idx and INDEX_DIR/Ngms-KKKK.db as database files.
+ * FILE: List of queries
+  * Handles each line of these files as a query.
+  * If omitted, the standard input is used.
 
- e.g.: ssgnc-gen-cgi.pl /home/ssgnc/ja > ssgnc-ja.pl
+{{{
+$ ssgnc-search
+Usage: ssgnc-search [OPTION]... INDEX_DIR [FILE]...
 
-Please copy a generated perl script into a CGI directory such as
-/usr/lib/cgi-bin.
+Options:
+  --ssgnc-min-freq=[1-999000000000000000]
+  --ssgnc-num-tokens=[0-30][-][0-30]
+  --ssgnc-min-num-tokens=[0-30]
+  --ssgnc-max-num-tokens=[0-30]
+  --ssgnc-max-num-results=[0-1099511627775]
+  --ssgnc-io-limit=[0-1099511627775]
+  --ssgnc-order=[UNORDERED, ORDERED, PHRASE, FIXED]
+}}}
 
-There are sample HTML documents in *./html* for using the above CGI program.
+----
+
+== CGI program ==
+
+The CGI program *ssgnc-cgi* is a web-based search interface. You can find this command in ssgnc-x.y.z/cgi.
+
+The directory path where database files exist must be specified in the 9th line of ssgnc-x.y.z/cgi/ssgnc-cgi.cc. In default, the directory path is /usr/share/ssgnc.
+
+{{{
+#define SSGNC_CGI_INDEX_DIR "/usr/share/ssgnc"
+}}}
+
+Also, you can change default parameters and limitations in setupQuery(). Please see the 38-40th lines and 46the th line of ssgnc-x.y.z/cgi/ssgnc-cgi.cc.
+
+{{{
+static const Int64 DEFAULT_MIN_FREQ = 1LL;
+static const Int64 DEFAULT_MAX_NUM_RESULTS = 100LL;
+static const Int64 DEFAULT_IO_LIMIT = 256LL << 10;
+}}}
+
+{{{
+static const Int64 MAX_IO_LIMIT = 1LL << 20;
+}}}
+
+Then, please copy the customized *ssgnc-cgi* into the directory for CGI programs. For example, Apache2 on Ubuntu 10.4 uses /usr/lib/cgi-bin/ for CGI programs. After the copy, please test the CGI program from your favorite browser.

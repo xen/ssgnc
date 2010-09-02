@@ -1,109 +1,150 @@
-#summary Google N-gram 検索システム
+#summary 大規模 N-gram 検索システム
 #labels Phase-Requirements,Phase-Design,Featured
 
 = はじめに =
 
-大規模 N-gram コーパスの検索を補助するシステムであり，
-Google により作成された日本語と英語のコーパスを想定しています．
+SSGNC（Search System for Giga-scale N-gram Corpus）は大規模 N-gram コーパスを対象とする検索システムであり，日英 Google N-gram コーパスに適用できます．
 
-== 機能 ==
+== 概要 ==
 
-Google N-gram に対して転置データベース（インデックス）を構築することにより，
-unigram の AND 検索やワイルドカードを用いた検索が可能となります．
+SSGNC では，あらかじめ N-gram コーパスから検索用のデータを構築しておくことにより，以下に示す 4 種類のクエリによる検索を実現します．
 
- * 検索方式
-  * AND 検索
-   * 「りんご」と「みかん」が出現する n-gram
-  * 順序付き AND 検索
-   * 「りんご」と「みかん」が順番に出現する n-gram
-  * フレーズ検索
-   * 「りんご」と「みかん」が続けて出現する n-gram
-  * ワイルドカード検索
-   * 「 `* * の よう な * *` 」（'`*`' は任意の unigram）に一致する n-gram
+ * クエリの種類
+  * *Unordered*: トークンの出現順序を考慮しない AND 検索
+   * 「りんご」と「みかん」が出現する N-gram を検索します．
+  * *Ordered*: トークンの出現順序を考慮する AND 検索
+   * 「りんご」の後に「みかん」が出現する N-gram を検索します．
+  * *Phrase*: フレーズ検索
+   * 「りんご」に続いて「みかん」が出現する N-gram を検索します．
+  * *Fixed*: 固定長検索
+   * 「りんご みかん」を検索します．
 
-grep などのコマンドを併用すれば，より詳細な検索も実現できます．
-
-※ 本システムにより構築されるインデックス自体には，
-任意の unigram を含む n-gram を頻度降順に取り出す程度の能力しかありません．
+検索用のコマンドおよび CGI プログラムを同梱しているため，コンソールやブラウザから簡単に検索機能を試すことができます．また，検索機能は C++ のライブラリとして提供されるため，任意のアプリケーションに組み込むことも可能です．
 
 ----
 
 == 動作環境 ==
 
-Linux での利用を想定して開発しており，
-64-bit 版の Ubuntu server で動作確認をしています．
-サイズが 2GB を超える大きなファイルに対して mmap() を使用するため，
-32-bit 版では正常に動作しません．
+Linux での利用を想定しており，動作確認は 32-bit 版と 64-bit 版の Ubuntu Server でおこなっています．0.4.0 以降の SSGNC は 32-bit 環境と 64-bit 環境の両方で利用可能ですが，0.4.0 より前の SSGNC は 64-bit 環境でのみ利用可能です．
 
-Mac OSX などの環境で動作するかどうかは未確認です．
+注意：検索用に構築するデータのフォーマットが異なるため，0.4.0 より前の SSGNC で構築したデータは 0.4.0 以降の SSNGC では利用できません．再構築が必要となります．
 
 ----
 
-== 用意するもの ==
+== インストール ==
 
-本システムのビルドには，以下のツールが必要となります．
+SSGNC のビルトには，以下のツールが必要になります．
 
  * g++
  * make
- * libboost-dev
- * dawgdic
-  * http://code.google.com/p/dawgdic/
+
+後は，一般的なインストール方法で問題ありません．
+
+{{{
+ ./configure
+ make
+ make check
+ make install
+}}}
+
+注意：0.4.0 より前の SSGNC では，Boost C++ ライブラリおよび dawgdic が必要です．
 
 ----
 
-= 構成 =
+= 使い方 =
 
-== インデクサ ==
+== 検索用データの構築 ==
 
-圧縮された状態の Google N-gram を展開しつつ，インデックスを構築します．
+Google N-gram コーパスと同様の構成（Ngms/Ngm-KKKK）を持つディレクトリを入力として，検索用のデータを構築します．
 
- ssgnc-build-index.sh 入力ディレクトリ 出力ディレクトリ
+ * Google N-gram コーパスの構成
+  * http://www.gsk.or.jp/catalog/GSK2007-C/GSK2007C_README.utf8.txt
 
- * 第一引数：Google N-gram の DVD に含まれるデータを展開したディレクトリ
- * 第二引数：インデックスを配置するディレクトリ
+検索用のデータを構築するコマンドは ssgnc-build.sh です．
 
- 例）ssgnc-build-index.sh ./data ./index
+{{{
+$ ssgnc-build.sh DATA_DIR INDEX_DIR [TEMP_DIR] [CHECKER]
+}}}
 
-英語版および日本語版の Google N-gram に対してインデックスを構築した場合，
-サイズは以下のようになります．
-作業領域も必要となるため，200GB 以上の空き領域を確保してから
-インデックスを構築するようにしてください．
+ * DATA_DIR: 入力ディレクトリ
+  * DATA_DIR/Ngms/Ngm-KKKK を入力として検索用のデータを構築します．
+  * gzip もしくは xz により圧縮されていれば，自動的に伸長します．
+ * INDEX_DIR: 出力ディレクトリ
+  * 構築された検索用のデータが INDEX_DIR/vocab.dic, INDEX_DIR/ngms.idx, INDEX_DIR/Ngms-KKKK.db という名前で保存されます．
+ * TEMP_DIR: 一時ディレクトリ
+  * 構築の途中で作成される一時ファイルの格納場所になります．
+  * 省略された場合，INDEX_DIR を使用します．
+ * CHECKER: 動作確認オプション
+  * 時間計測およびデバッグ用のオプションです．
 
- * インデックスのサイズ
-  * 英語版 Google N-gram: 116GB
-  * 日本語版 Google N-gram: 145GB
+検索用のデータは，圧縮していない状態の入力と同程度のサイズになります．一時ファイルを格納する領域も必要になるため，入力のサイズに対して 2 倍くらいの空き領域を確保してから構築するようにしてください．
 
-※ 出力されるインデックスには，Google N-gram 自体も含まれます．
+{{{
+$ ssgnc-build.sh
+Usage: DATA_DIR INDEX_DIR [TEMP_DIR] [CHECKER]
+
+DATA_DIR: DATA_DIR/Ngms/Ngm-KKKK [.gz, .xz]
+INDEX_DIR: INDEX_DIR/vocab.dic, ngms.idx, Ngm-KKKK.db
+TEMP_DIR: TEMP_DIR/Ngm-KKKK.bin, Ngm-KKKK.part, Ngms.idx
+CHECKER: time, valgrind
+  time: time -f 'real %E, user %U, sys %S'
+  valgrind: valgrind --leak-check=full
+}}}
 
 ----
 
 == 検索コマンド ==
 
-インデックスを用いて Google N-gram からの検索をおこないます．
+N-gram を検索するコマンドは ssgnc-search です．
 
- ssgnc-search -d DataDir
+{{{
+$ ssgnc-search [OPTION]... INDEX_DIR [FILE]...
+}}}
 
- * DataDir：インデックスのあるディレクトリ
+ * OPTION: 検索オプション
+  * 引数なしで ssgnc-search を実行することにより，指定可能なオプションの一覧が表示されます．
+ * INDEX_DIR: 検索用データの格納場所
+  * 検索用のデータとして INDEX_DIR/vocab.dic, INDEX_DIR/ngms.idx, INDEX_DIR/Ngms-KKKK.db を参照します．
+ * FILE: クエリファイル
+  * 各行をクエリとして読み込んで検索します．
+  * 省略された場合，標準入力からクエリを読み込みます．
 
- 例）ssgnc-search -d /home/ssgnc/ja
+{{{
+$ ssgnc-search
+Usage: ssgnc-search [OPTION]... INDEX_DIR [FILE]...
 
-その他のオプションについては ssgnc-search -h をご覧ください．
+Options:
+  --ssgnc-min-freq=[1-999000000000000000]
+  --ssgnc-num-tokens=[0-30][-][0-30]
+  --ssgnc-min-num-tokens=[0-30]
+  --ssgnc-max-num-tokens=[0-30]
+  --ssgnc-max-num-results=[0-1099511627775]
+  --ssgnc-io-limit=[0-1099511627775]
+  --ssgnc-order=[UNORDERED, ORDERED, PHRASE, FIXED]
+}}}
 
 ----
 
 == CGI プログラム ==
 
-CGI プログラムを生成するスクリプトが利用できます．
+SSGNC のアーカイブを展開してできるディレクトリ ssgnc-x.y.z/cgi の中にある ssgnc-cgi というコマンドが検索用の CGI プログラムです．
 
- ssgnc-gen-cgi.pl DataDir > CgiPerl
+初期状態では，検索用データの格納場所が /usr/share/ssgnc になっています．必要に応じて，ssgnc-x.y.z/cgi/ssgnc-cgi.cc の 9 行目を編集してください．
 
- * DataDir：インデックスのあるディレクトリ
- * CgiPerl：CGI プログラム
+{{{
+#define SSGNC_CGI_INDEX_DIR "/usr/share/ssgnc"
+}}}
 
- 例）ssgnc-gen-cgi.pl /home/ssgnc/ja > ssgnc-ja.pl
+また，極端に高い負荷をかけないように，取得する検索結果の数などを制限しています．必要に応じて，ssgnc-x.y.z/cgi/ssgnc-cgi.cc の 38-40 行目（デフォルト設定）および 46 行目（I/O 上限）前後を編集してください．
 
-生成された Perl スクリプトを CGI プログラム用のディレクトリ
-（/usr/lib/cgi-bin あたり）にコピーすれば使えます．
+{{{
+static const Int64 DEFAULT_MIN_FREQ = 1LL;
+static const Int64 DEFAULT_MAX_NUM_RESULTS = 100LL;
+static const Int64 DEFAULT_IO_LIMIT = 256LL << 10;
+}}}
 
-./html の中に HTML があるので，ご利用ください．
-ただし，必要に応じてパスを修正する必要があります．
+{{{
+static const Int64 MAX_IO_LIMIT = 1LL << 20;
+}}}
+
+後は，make によりコマンドを再ビルドし，ssgnc-cgi の名前を変更して CGI プログラム用のディレクトリ（Ubuntu 10.4 + Apache2 の初期設定では /usr/lib/cgi-bin/）にコピーすれば準備完了です．ブラウザから動作の確認をおこなってください．
