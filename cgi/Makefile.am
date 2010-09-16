@@ -1,6 +1,6 @@
 AM_CXXFLAGS = -Wall -Weffc++ -I../include
 
-bin_PROGRAMS = \
+noinst_PROGRAMS = \
 	ssgnc-cgi
 
 ssgnc_cgi_SOURCES = ssgnc-cgi.cc

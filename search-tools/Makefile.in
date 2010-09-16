@@ -15,7 +15,6 @@
 
 @SET_MAKE@
 
-
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -33,12 +32,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = ssgnc-db-lookup$(EXEEXT) ssgnc-db-merge$(EXEEXT) \
-	ssgnc-db-split$(EXEEXT) ssgnc-idx-merge$(EXEEXT) \
-	ssgnc-ngms-encode$(EXEEXT) ssgnc-ngms-merge$(EXEEXT) \
-	ssgnc-ngms-split$(EXEEXT) ssgnc-search$(EXEEXT) \
-	ssgnc-vocab-dic-build$(EXEEXT) ssgnc-vocab-dic-lookup$(EXEEXT)
-subdir = tools
+bin_PROGRAMS = ssgnc-search$(EXEEXT) ssgnc-vocab-dic-lookup$(EXEEXT)
+subdir = search-tools
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -47,70 +42,14 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)"
+am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_ssgnc_db_lookup_OBJECTS = ssgnc-db-lookup.$(OBJEXT) \
-	tools-common.$(OBJEXT)
-ssgnc_db_lookup_OBJECTS = $(am_ssgnc_db_lookup_OBJECTS)
-ssgnc_db_lookup_DEPENDENCIES = ../lib/libssgnc.a
-am_ssgnc_db_merge_OBJECTS = ssgnc-db-merge.$(OBJEXT) \
-	tools-common.$(OBJEXT)
-ssgnc_db_merge_OBJECTS = $(am_ssgnc_db_merge_OBJECTS)
-ssgnc_db_merge_DEPENDENCIES = ../lib/libssgnc.a
-am_ssgnc_db_split_OBJECTS = ssgnc-db-split.$(OBJEXT) \
-	tools-common.$(OBJEXT)
-ssgnc_db_split_OBJECTS = $(am_ssgnc_db_split_OBJECTS)
-ssgnc_db_split_DEPENDENCIES = ../lib/libssgnc.a
-am_ssgnc_idx_merge_OBJECTS = ssgnc-idx-merge.$(OBJEXT) \
-	tools-common.$(OBJEXT)
-ssgnc_idx_merge_OBJECTS = $(am_ssgnc_idx_merge_OBJECTS)
-ssgnc_idx_merge_DEPENDENCIES = ../lib/libssgnc.a
-am_ssgnc_ngms_encode_OBJECTS = ssgnc-ngms-encode.$(OBJEXT) \
-	tools-common.$(OBJEXT)
-ssgnc_ngms_encode_OBJECTS = $(am_ssgnc_ngms_encode_OBJECTS)
-ssgnc_ngms_encode_DEPENDENCIES = ../lib/libssgnc.a
-am_ssgnc_ngms_merge_OBJECTS = ssgnc-ngms-merge.$(OBJEXT) \
-	tools-common.$(OBJEXT)
-ssgnc_ngms_merge_OBJECTS = $(am_ssgnc_ngms_merge_OBJECTS)
-ssgnc_ngms_merge_DEPENDENCIES = ../lib/libssgnc.a
-am_ssgnc_ngms_split_OBJECTS = ssgnc-ngms-split.$(OBJEXT) \
-	tools-common.$(OBJEXT)
-ssgnc_ngms_split_OBJECTS = $(am_ssgnc_ngms_split_OBJECTS)
-ssgnc_ngms_split_DEPENDENCIES = ../lib/libssgnc.a
-am_ssgnc_search_OBJECTS = ssgnc-search.$(OBJEXT) \
-	tools-common.$(OBJEXT)
+am_ssgnc_search_OBJECTS = ssgnc-search.$(OBJEXT)
 ssgnc_search_OBJECTS = $(am_ssgnc_search_OBJECTS)
 ssgnc_search_DEPENDENCIES = ../lib/libssgnc.a
-am_ssgnc_vocab_dic_build_OBJECTS = ssgnc-vocab-dic-build.$(OBJEXT) \
-	tools-common.$(OBJEXT)
-ssgnc_vocab_dic_build_OBJECTS = $(am_ssgnc_vocab_dic_build_OBJECTS)
-ssgnc_vocab_dic_build_DEPENDENCIES = ../lib/libssgnc.a
-am_ssgnc_vocab_dic_lookup_OBJECTS = ssgnc-vocab-dic-lookup.$(OBJEXT) \
-	tools-common.$(OBJEXT)
+am_ssgnc_vocab_dic_lookup_OBJECTS = ssgnc-vocab-dic-lookup.$(OBJEXT)
 ssgnc_vocab_dic_lookup_OBJECTS = $(am_ssgnc_vocab_dic_lookup_OBJECTS)
 ssgnc_vocab_dic_lookup_DEPENDENCIES = ../lib/libssgnc.a
-am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
-am__vpath_adj = case $$p in \
-    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
-    *) f=$$p;; \
-  esac;
-am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
-am__install_max = 40
-am__nobase_strip_setup = \
-  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
-am__nobase_strip = \
-  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
-am__nobase_list = $(am__nobase_strip_setup); \
-  for p in $$list; do echo "$$p $$p"; done | \
-  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
-  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
-    if (++n[$$2] == $(am__install_max)) \
-      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
-    END { for (dir in files) print dir, files[dir] }'
-am__base_list = \
-  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
-  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-SCRIPTS = $(bin_SCRIPTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -120,17 +59,8 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(ssgnc_db_lookup_SOURCES) $(ssgnc_db_merge_SOURCES) \
-	$(ssgnc_db_split_SOURCES) $(ssgnc_idx_merge_SOURCES) \
-	$(ssgnc_ngms_encode_SOURCES) $(ssgnc_ngms_merge_SOURCES) \
-	$(ssgnc_ngms_split_SOURCES) $(ssgnc_search_SOURCES) \
-	$(ssgnc_vocab_dic_build_SOURCES) \
-	$(ssgnc_vocab_dic_lookup_SOURCES)
-DIST_SOURCES = $(ssgnc_db_lookup_SOURCES) $(ssgnc_db_merge_SOURCES) \
-	$(ssgnc_db_split_SOURCES) $(ssgnc_idx_merge_SOURCES) \
-	$(ssgnc_ngms_encode_SOURCES) $(ssgnc_ngms_merge_SOURCES) \
-	$(ssgnc_ngms_split_SOURCES) $(ssgnc_search_SOURCES) \
-	$(ssgnc_vocab_dic_build_SOURCES) \
+SOURCES = $(ssgnc_search_SOURCES) $(ssgnc_vocab_dic_lookup_SOURCES)
+DIST_SOURCES = $(ssgnc_search_SOURCES) \
 	$(ssgnc_vocab_dic_lookup_SOURCES)
 ETAGS = etags
 CTAGS = ctags
@@ -227,33 +157,10 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CXXFLAGS = -Wall -Weffc++ -I../include
-bin_SCRIPTS = \
-	ssgnc-build.sh
-
-ssgnc_db_lookup_SOURCES = ssgnc-db-lookup.cc tools-common.cc
-ssgnc_db_lookup_LDADD = ../lib/libssgnc.a
-ssgnc_db_merge_SOURCES = ssgnc-db-merge.cc tools-common.cc
-ssgnc_db_merge_LDADD = ../lib/libssgnc.a
-ssgnc_db_split_SOURCES = ssgnc-db-split.cc tools-common.cc
-ssgnc_db_split_LDADD = ../lib/libssgnc.a
-ssgnc_idx_merge_SOURCES = ssgnc-idx-merge.cc tools-common.cc
-ssgnc_idx_merge_LDADD = ../lib/libssgnc.a
-ssgnc_ngms_encode_SOURCES = ssgnc-ngms-encode.cc tools-common.cc
-ssgnc_ngms_encode_LDADD = ../lib/libssgnc.a
-ssgnc_ngms_merge_SOURCES = ssgnc-ngms-merge.cc tools-common.cc
-ssgnc_ngms_merge_LDADD = ../lib/libssgnc.a
-ssgnc_ngms_split_SOURCES = ssgnc-ngms-split.cc tools-common.cc
-ssgnc_ngms_split_LDADD = ../lib/libssgnc.a
-ssgnc_search_SOURCES = ssgnc-search.cc tools-common.cc
+ssgnc_search_SOURCES = ssgnc-search.cc
 ssgnc_search_LDADD = ../lib/libssgnc.a
-ssgnc_vocab_dic_build_SOURCES = ssgnc-vocab-dic-build.cc tools-common.cc
-ssgnc_vocab_dic_build_LDADD = ../lib/libssgnc.a
-ssgnc_vocab_dic_lookup_SOURCES = ssgnc-vocab-dic-lookup.cc tools-common.cc
+ssgnc_vocab_dic_lookup_SOURCES = ssgnc-vocab-dic-lookup.cc
 ssgnc_vocab_dic_lookup_LDADD = ../lib/libssgnc.a
-EXTRA_DIST = \
-	ssgnc-build.sh \
-	tools-common.h
-
 all: all-am
 
 .SUFFIXES:
@@ -267,9 +174,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu tools/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu search-tools/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu tools/Makefile
+	  $(AUTOMAKE) --gnu search-tools/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -325,70 +232,12 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-ssgnc-db-lookup$(EXEEXT): $(ssgnc_db_lookup_OBJECTS) $(ssgnc_db_lookup_DEPENDENCIES) 
-	@rm -f ssgnc-db-lookup$(EXEEXT)
-	$(CXXLINK) $(ssgnc_db_lookup_OBJECTS) $(ssgnc_db_lookup_LDADD) $(LIBS)
-ssgnc-db-merge$(EXEEXT): $(ssgnc_db_merge_OBJECTS) $(ssgnc_db_merge_DEPENDENCIES) 
-	@rm -f ssgnc-db-merge$(EXEEXT)
-	$(CXXLINK) $(ssgnc_db_merge_OBJECTS) $(ssgnc_db_merge_LDADD) $(LIBS)
-ssgnc-db-split$(EXEEXT): $(ssgnc_db_split_OBJECTS) $(ssgnc_db_split_DEPENDENCIES) 
-	@rm -f ssgnc-db-split$(EXEEXT)
-	$(CXXLINK) $(ssgnc_db_split_OBJECTS) $(ssgnc_db_split_LDADD) $(LIBS)
-ssgnc-idx-merge$(EXEEXT): $(ssgnc_idx_merge_OBJECTS) $(ssgnc_idx_merge_DEPENDENCIES) 
-	@rm -f ssgnc-idx-merge$(EXEEXT)
-	$(CXXLINK) $(ssgnc_idx_merge_OBJECTS) $(ssgnc_idx_merge_LDADD) $(LIBS)
-ssgnc-ngms-encode$(EXEEXT): $(ssgnc_ngms_encode_OBJECTS) $(ssgnc_ngms_encode_DEPENDENCIES) 
-	@rm -f ssgnc-ngms-encode$(EXEEXT)
-	$(CXXLINK) $(ssgnc_ngms_encode_OBJECTS) $(ssgnc_ngms_encode_LDADD) $(LIBS)
-ssgnc-ngms-merge$(EXEEXT): $(ssgnc_ngms_merge_OBJECTS) $(ssgnc_ngms_merge_DEPENDENCIES) 
-	@rm -f ssgnc-ngms-merge$(EXEEXT)
-	$(CXXLINK) $(ssgnc_ngms_merge_OBJECTS) $(ssgnc_ngms_merge_LDADD) $(LIBS)
-ssgnc-ngms-split$(EXEEXT): $(ssgnc_ngms_split_OBJECTS) $(ssgnc_ngms_split_DEPENDENCIES) 
-	@rm -f ssgnc-ngms-split$(EXEEXT)
-	$(CXXLINK) $(ssgnc_ngms_split_OBJECTS) $(ssgnc_ngms_split_LDADD) $(LIBS)
 ssgnc-search$(EXEEXT): $(ssgnc_search_OBJECTS) $(ssgnc_search_DEPENDENCIES) 
 	@rm -f ssgnc-search$(EXEEXT)
 	$(CXXLINK) $(ssgnc_search_OBJECTS) $(ssgnc_search_LDADD) $(LIBS)
-ssgnc-vocab-dic-build$(EXEEXT): $(ssgnc_vocab_dic_build_OBJECTS) $(ssgnc_vocab_dic_build_DEPENDENCIES) 
-	@rm -f ssgnc-vocab-dic-build$(EXEEXT)
-	$(CXXLINK) $(ssgnc_vocab_dic_build_OBJECTS) $(ssgnc_vocab_dic_build_LDADD) $(LIBS)
 ssgnc-vocab-dic-lookup$(EXEEXT): $(ssgnc_vocab_dic_lookup_OBJECTS) $(ssgnc_vocab_dic_lookup_DEPENDENCIES) 
 	@rm -f ssgnc-vocab-dic-lookup$(EXEEXT)
 	$(CXXLINK) $(ssgnc_vocab_dic_lookup_OBJECTS) $(ssgnc_vocab_dic_lookup_LDADD) $(LIBS)
-install-binSCRIPTS: $(bin_SCRIPTS)
-	@$(NORMAL_INSTALL)
-	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
-	@list='$(bin_SCRIPTS)'; test -n "$(bindir)" || list=; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
-	done | \
-	sed -e 'p;s,.*/,,;n' \
-	    -e 'h;s|.*|.|' \
-	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
-	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
-	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
-	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
-	      if (++n[d] == $(am__install_max)) { \
-		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
-	    else { print "f", d "/" $$4, $$1 } } \
-	  END { for (d in files) print "f", d, files[d] }' | \
-	while read type dir files; do \
-	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
-	     test -z "$$files" || { \
-	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(bindir)$$dir'"; \
-	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(bindir)$$dir" || exit $$?; \
-	     } \
-	; done
-
-uninstall-binSCRIPTS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(bin_SCRIPTS)'; test -n "$(bindir)" || exit 0; \
-	files=`for p in $$list; do echo "$$p"; done | \
-	       sed -e 's,.*/,,;$(transform)'`; \
-	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(bindir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(bindir)" && rm -f $$files
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -396,17 +245,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-db-lookup.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-db-merge.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-db-split.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-idx-merge.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-ngms-encode.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-ngms-merge.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-ngms-split.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-search.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-vocab-dic-build.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssgnc-vocab-dic-lookup.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tools-common.Po@am__quote@
 
 .cc.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -506,9 +346,9 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS) $(SCRIPTS)
+all-am: Makefile $(PROGRAMS)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)"; do \
+	for dir in "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -564,7 +404,7 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS install-binSCRIPTS
+install-exec-am: install-binPROGRAMS
 
 install-html: install-html-am
 
@@ -603,7 +443,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS
+uninstall-am: uninstall-binPROGRAMS
 
 .MAKE: install-am install-strip
 
@@ -611,18 +451,15 @@ uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS
 	clean-generic ctags distclean distclean-compile \
 	distclean-generic distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-binPROGRAMS \
-	install-binSCRIPTS install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-binSCRIPTS
+	install-data install-data-am install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-binPROGRAMS
 
-
-tools-common.cc: tools-common.h
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
