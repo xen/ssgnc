@@ -1,17 +1,34 @@
-#include "tools-common.h"
+#include <ssgnc.h>
+
+#include <iostream>
+#include <string>
 
 namespace {
 
-void searchQueries(std::istream *in, const ssgnc::Database &database,
+bool readLine(std::istream *in, std::string *line)
+{
+	try
+	{
+		if (!std::getline(*in, *line))
+			return false;
+		return true;
+	}
+	catch (...)
+	{
+		in->setstate(std::ios::badbit);
+		return false;
+	}
+}
+
+bool searchQueries(std::istream *in, const ssgnc::Database &database,
 	ssgnc::Query *query)
 {
-	ssgnc::Int16 encoded_freq;
 	std::vector<ssgnc::Int32> tokens;
 
 	ssgnc::StringBuilder ngram_str;
 
 	std::string line;
-	while (ssgnc::tools::readLine(in, &line))
+	while (readLine(in, &line))
 	{
 		ssgnc::String query_str(line.c_str(), line.length());
 		if (!database.parseQuery(query_str, query))
@@ -27,12 +44,13 @@ void searchQueries(std::istream *in, const ssgnc::Database &database,
 			continue;
 		}
 
+		ssgnc::Int16 encoded_freq;
 		while (agent.read(&encoded_freq, &tokens))
 		{
 			if (!database.decode(encoded_freq, tokens, &ngram_str))
 			{
 				SSGNC_ERROR << "ssgnc::Database::decode() failed" << std::endl;
-				return;
+				return false;
 			}
 
 			std::cout << ngram_str << '\n';
@@ -40,26 +58,36 @@ void searchQueries(std::istream *in, const ssgnc::Database &database,
 			{
 				SSGNC_ERROR << "std::ostream::operator<<() failed"
 					<< std::endl;
-				return;
+				return false;
 			}
 		}
 
 		if (agent.bad())
 		{
 			SSGNC_ERROR << "ssgnc::Agent::read() failed" << std::endl;
-			return;
+			return false;
 		}
 
 		std::cout << '\n';
 		if (!std::cout)
 		{
 			SSGNC_ERROR << "std::ostream::operator<<() failed" << std::endl;
-			return;
+			return false;
 		}
 	}
 
 	if (in->bad())
-		SSGNC_ERROR << "ssgnc::tools::readLine() failed" << std::endl;
+	{
+		SSGNC_ERROR << "::readLine() failed" << std::endl;
+		return false;
+	}
+
+	if (!std::cout.flush())
+	{
+		SSGNC_ERROR << "std::ostream::flush() failed" << std::endl;
+		return false;
+	}
+	return true;
 }
 
 }  // namespace
@@ -86,7 +114,10 @@ int main(int argc, char *argv[])
 		return 3;
 
 	if (argc == 2)
-		searchQueries(&std::cin, database, &query);
+	{
+		if (!searchQueries(&std::cin, database, &query))
+			return 4;
+	}
 
 	for (int i = 2; i < argc; ++i)
 	{
@@ -98,7 +129,9 @@ int main(int argc, char *argv[])
 				<< argv[i] << std::endl;
 			continue;
 		}
-		searchQueries(&file, database, &query);
+
+		if (!searchQueries(&file, database, &query))
+			return 4;
 	}
 
 	return 0;

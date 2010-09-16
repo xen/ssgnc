@@ -4977,7 +4977,7 @@ done
 
 # Checks for library functions.
 
-ac_config_files="$ac_config_files Makefile lib/Makefile tools/Makefile cgi/Makefile tests/Makefile"
+ac_config_files="$ac_config_files Makefile lib/Makefile build-tools/Makefile search-tools/Makefile cgi/Makefile tests/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -5712,7 +5712,8 @@ do
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "lib/Makefile") CONFIG_FILES="$CONFIG_FILES lib/Makefile" ;;
-    "tools/Makefile") CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
+    "build-tools/Makefile") CONFIG_FILES="$CONFIG_FILES build-tools/Makefile" ;;
+    "search-tools/Makefile") CONFIG_FILES="$CONFIG_FILES search-tools/Makefile" ;;
     "cgi/Makefile") CONFIG_FILES="$CONFIG_FILES cgi/Makefile" ;;
     "tests/Makefile") CONFIG_FILES="$CONFIG_FILES tests/Makefile" ;;
 

@@ -31,6 +31,6 @@ AC_CHECK_FUNCS([strtol] [munmap] [localtime_r])
 
 # Checks for library functions.
 
-AC_CONFIG_FILES([Makefile] [lib/Makefile] [tools/Makefile]
-	[cgi/Makefile] [tests/Makefile])
+AC_CONFIG_FILES([Makefile] [lib/Makefile] [build-tools/Makefile]
+	[search-tools/Makefile] [cgi/Makefile] [tests/Makefile])
 AC_OUTPUT

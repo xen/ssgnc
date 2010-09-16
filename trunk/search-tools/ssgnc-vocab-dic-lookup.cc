@@ -1,13 +1,31 @@
-#include "tools-common.h"
+#include <ssgnc.h>
+
+#include <iostream>
+#include <string>
 
 namespace {
 
-void lookupKeys(std::istream *in, const ssgnc::VocabDic &vocab_dic)
+bool readLine(std::istream *in, std::string *line)
+{
+	try
+	{
+		if (!std::getline(*in, *line))
+			return false;
+		return true;
+	}
+	catch (...)
+	{
+		in->setstate(std::ios::badbit);
+		return false;
+	}
+}
+
+bool lookupKeys(std::istream *in, const ssgnc::VocabDic &vocab_dic)
 {
 	enum { MAX_KEY_ID = 0x7FFFFFFF };
 
 	std::string line;
-	while (ssgnc::tools::readLine(in, &line))
+	while (readLine(in, &line))
 	{
 		ssgnc::String key(line.c_str(),
 			static_cast<ssgnc::UInt32>(line.length()));
@@ -20,15 +38,16 @@ void lookupKeys(std::istream *in, const ssgnc::VocabDic &vocab_dic)
 			std::cout << "not found";
 
 		char *end_of_key_id;
-		long key_id_l = std::strtol(key.ptr(), &end_of_key_id, 10);
+		ssgnc::Int64 key_id_64 = std::strtoll(key.ptr(), &end_of_key_id, 10);
 		if (*end_of_key_id == '\0')
 		{
 			std::cout << ", vocab_dic[" << key_id << "]: ";
-			if (key_id_l < 0 || key_id_l > MAX_KEY_ID)
+			if (key_id_64 < 0 || key_id_64 >=
+				static_cast<ssgnc::Int64>(vocab_dic.num_keys()))
 				std::cout << "out of range";
 			else
 			{
-				key_id = static_cast<ssgnc::Int32>(key_id_l);
+				key_id = static_cast<ssgnc::Int32>(key_id_64);
 				ssgnc::String match;
 				if (vocab_dic.find(key_id, &match))
 					std::cout << match;
@@ -36,17 +55,33 @@ void lookupKeys(std::istream *in, const ssgnc::VocabDic &vocab_dic)
 					std::cout << "out of range";
 			}
 		}
+
 		std::cout << '\n';
+		if (!std::cout)
+		{
+			SSGNC_ERROR << "std::ostream::operator<<() failed" << std::endl;
+			return false;
+		}
 	}
-	std::cout.flush();
+
+	if (in->bad())
+	{
+		SSGNC_ERROR << "::readLine() failed" << std::endl;
+		return false;
+	}
+
+	if (!std::cout.flush())
+	{
+		SSGNC_ERROR << "std::ostream::flush() failed" << std::endl;
+		return false;
+	}
+	return true;
 }
 
 }  // namespace
 
 int main(int argc, char *argv[])
 {
-	ssgnc::tools::initIO();
-
 	if (argc < 2)
 	{
 		std::cerr << "Usage: " << argv[0]
@@ -59,7 +94,10 @@ int main(int argc, char *argv[])
 		return 2;
 
 	if (argc == 2)
-		lookupKeys(&std::cin, vocab_dic);
+	{
+		if (!lookupKeys(&std::cin, vocab_dic))
+			return 3;
+	}
 
 	for (int i = 2; i < argc; ++i)
 	{
@@ -71,7 +109,9 @@ int main(int argc, char *argv[])
 				<< argv[i] << std::endl;
 			continue;
 		}
-		lookupKeys(&file, vocab_dic);
+
+		if (!lookupKeys(&file, vocab_dic))
+			return 3;
 	}
 
 	return 0;
