@@ -38,6 +38,9 @@ public:
 
 	Int32 token(Int32 index) const;
 	Int32 num_tokens() const { return static_cast<Int32>(tokens_.size()); }
+	std::vector<Int32> *mutable_tokens() { return &tokens_; }
+	const std::vector<Int32> &tokens() { return tokens_; }
+
 	Int64 min_freq() const { return min_freq_; }
 	Int16 min_encoded_freq() const { return min_encoded_freq_; }
 	Int32 min_num_tokens() const { return min_num_tokens_; }
