@@ -20,13 +20,9 @@ bool readLine(std::istream *in, std::string *line)
 	}
 }
 
-bool searchQueries(std::istream *in, const ssgnc::Database &database,
+bool searchNgrams(std::istream *in, const ssgnc::Database &database,
 	ssgnc::Query *query)
 {
-	std::vector<ssgnc::Int32> tokens;
-
-	ssgnc::StringBuilder ngram_str;
-
 	std::string line;
 	while (readLine(in, &line))
 	{
@@ -34,17 +30,20 @@ bool searchQueries(std::istream *in, const ssgnc::Database &database,
 		if (!database.parseQuery(query_str, query))
 		{
 			SSGNC_ERROR << "ssgnc::Database::parseQuery() failed" << std::endl;
-			continue;
+			return false;
 		}
 
 		ssgnc::Agent agent;
 		if (!database.search(*query, &agent))
 		{
 			SSGNC_ERROR << "ssgnc::Database::search() failed" << std::endl;
-			continue;
+			return false;
 		}
 
 		ssgnc::Int16 encoded_freq;
+		std::vector<ssgnc::Int32> tokens;
+		ssgnc::StringBuilder ngram_str;
+
 		while (agent.read(&encoded_freq, &tokens))
 		{
 			if (!database.decode(encoded_freq, tokens, &ngram_str))
@@ -96,7 +95,6 @@ int main(int argc, char *argv[])
 {
 	ssgnc::Query query;
 	query.set_max_num_results(10);
-	query.set_io_limit(1 << 20);
 
 	if (!query.parseOptions(&argc, argv))
 		return 1;
@@ -115,7 +113,7 @@ int main(int argc, char *argv[])
 
 	if (argc == 2)
 	{
-		if (!searchQueries(&std::cin, database, &query))
+		if (!searchNgrams(&std::cin, database, &query))
 			return 4;
 	}
 
@@ -130,7 +128,7 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		if (!searchQueries(&file, database, &query))
+		if (!searchNgrams(&file, database, &query))
 			return 4;
 	}
 
