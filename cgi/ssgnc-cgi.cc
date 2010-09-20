@@ -1,13 +1,9 @@
-#include <ssgnc.h>
+#include "config.h"
 
 #include <cstdlib>
 #include <iostream>
 #include <map>
 #include <vector>
-
-#ifndef SSGNC_CGI_INDEX_DIR
-#define SSGNC_CGI_INDEX_DIR "/usr/share/ssgnc"
-#endif  // SSGNC_CGI_INDEX_DIR
 
 namespace {
 
@@ -21,6 +17,7 @@ KeyValueMap key_value_map;
 
 Query query;
 String query_str;
+StringBuilder char_tokens_buf;
 
 Database database;
 Agent agent;
@@ -35,24 +32,55 @@ StringBuilder token_buf;
 
 void setupQuery()
 {
-	static const Int64 DEFAULT_MIN_FREQ = 1LL;
-	static const Int64 DEFAULT_MAX_NUM_RESULTS = 100LL;
-	static const Int64 DEFAULT_IO_LIMIT = 256LL << 10;
-
-	query.set_min_freq(DEFAULT_MIN_FREQ);
-	query.set_max_num_results(DEFAULT_MAX_NUM_RESULTS);
-	query.set_io_limit(DEFAULT_IO_LIMIT);
-
-	static const Int64 MAX_IO_LIMIT = 1LL << 20;
+	query.set_max_num_results(cgi::Config::DEFAULT_MAX_NUM_RESULTS());
+	query.set_io_limit(cgi::Config::DEFAULT_IO_LIMIT());
 
 	std::vector<KeyValuePair> key_value_pairs;
 	query.parseQueryString(std::getenv("QUERY_STRING"),
 		&mem_pool, &key_value_pairs);
 	key_value_map.insert(key_value_pairs.begin(), key_value_pairs.end());
 
-	if (query.io_limit() == 0 ||
-		query.io_limit() > static_cast<UInt64>(MAX_IO_LIMIT))
-		query.set_io_limit(MAX_IO_LIMIT);
+	if (cgi::Config::MAX_MAX_NUM_RESULTS() != 0 &&
+		(query.max_num_results() == 0 || query.max_num_results()
+		> static_cast<UInt64>(cgi::Config::MAX_MAX_NUM_RESULTS())))
+		query.set_max_num_results(cgi::Config::MAX_MAX_NUM_RESULTS());
+
+	if (cgi::Config::MAX_IO_LIMIT() != 0 &&
+		(query.io_limit() == 0 || query.io_limit()
+		> static_cast<UInt64>(cgi::Config::MAX_IO_LIMIT())))
+		query.set_io_limit(cgi::Config::MAX_IO_LIMIT());
+}
+
+void splitCharTokens()
+{
+	static const String START_TAG = "<S>";
+	static const String END_TAG = "</S>";
+
+	while (!query_str.empty())
+	{
+		String token;
+		if (query_str.startsWith(START_TAG))
+			token = query_str.substr(0, START_TAG.length());
+		else if (query_str.startsWith(END_TAG))
+			token = query_str.substr(0, END_TAG.length());
+		else
+		{
+			UInt32 token_length = 1;
+			while (token_length < query_str.length())
+			{
+				if ((static_cast<UInt8>(query_str[token_length]) & 0xC0)
+					!= 0x80)
+					break;
+				++token_length;
+			}
+			token = query_str.substr(0, token_length);
+		}
+
+		if (!char_tokens_buf.append(' ') || !char_tokens_buf.append(token))
+			SSGNC_ERROR << "ssgnc::StringBuilder::append() failed" << std::endl;
+		query_str = query_str.substr(token.length());
+	}
+	query_str = char_tokens_buf.str();
 }
 
 void printToken(const String &token)
@@ -201,7 +229,7 @@ void handleHtmlRequest()
 	printHtmlHeader();
 	std::cout << "<body>\n";
 
-	if (query_str.empty())
+	if (!agent.is_open())
 		printHtmlForm();
 
 	while (agent.read(&encoded_freq, &tokens))
@@ -273,10 +301,16 @@ int main()
 	query_str = key_value_map["q"];
 	if (!query_str.empty())
 	{
-		if (database.open(SSGNC_CGI_INDEX_DIR))
+		if (cgi::Config::TOKEN_TYPE() == cgi::Config::CHAR_TOKEN)
+			splitCharTokens();
+
+		if (database.open(cgi::Config::INDEX_DIR()))
 		{
 			if (database.parseQuery(query_str, &query))
-				database.search(query, &agent);
+			{
+				if (query.num_tokens() > 0)
+					database.search(query, &agent);
+			}
 		}
 	}
 
