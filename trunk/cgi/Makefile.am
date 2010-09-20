@@ -5,3 +5,6 @@ noinst_PROGRAMS = \
 
 ssgnc_cgi_SOURCES = ssgnc-cgi.cc
 ssgnc_cgi_LDADD = ../lib/libssgnc.a
+
+EXTRA_DIST = \
+	config.h
