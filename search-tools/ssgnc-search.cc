@@ -5,7 +5,7 @@
 
 namespace {
 
-// Reads a line from `in' and stores it into `line'.
+// This function reads a line from `in' and stores it into `line'.
 // If the stream reaches its end or an unexpected error occurs,
 // this function returns false. And in the latter case,
 // the bad bit of `in' is set to true.
@@ -42,7 +42,7 @@ bool searchNgrams(std::istream *in, const ssgnc::Database &database,
 		}
 
 		// ssgnc::Agent opens .db files corresponding to the query. Then,
-		// read() of the agent returns n-grams one by one.
+		// the agent's read() returns n-grams one by one.
 		// If you want to reuse the agent for efficiency, please call close()
 		// before() the next search. Otherwise, the next search fails.
 		ssgnc::Agent agent;
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
 	// A dictionary file and an index file are opend as memory-mapped files.
 	// If open() takes ssgnc::FileMap::READ_FILE as the 2nd argument,
 	// the entire files are loaded in this function.
-	// Database files containing n-grams is opened when a query is given.
+	// Database files containing n-grams are opened when a query is given.
 	ssgnc::Database database;
 	if (!database.open(argv[1]))
 		return 3;

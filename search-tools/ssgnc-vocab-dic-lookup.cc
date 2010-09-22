@@ -5,7 +5,7 @@
 
 namespace {
 
-// Reads a line from `in' and stores it into `line'.
+// This function reads a line from `in' and stores it into `line'.
 // If the stream reaches its end or an unexpected error occurs,
 // this function returns false. And in the latter case,
 // the bad bit of `in' is set to true.
