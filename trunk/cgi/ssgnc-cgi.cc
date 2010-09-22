@@ -30,16 +30,25 @@ std::vector<String> token_strs;
 StringBuilder ngram_buf;
 StringBuilder token_buf;
 
+// A query string is read by std::getenv(). This means that this function
+// parses only parameters of GET requests.
 void setupQuery()
 {
+	// If the CGI program is used through browsers, the number of results
+	// should be limited. Also, the IO limit is useful to shorten the
+	// worst case response time.
+
+	// These default settings are defined in config.h.
 	query.set_max_num_results(cgi::Config::DEFAULT_MAX_NUM_RESULTS());
 	query.set_io_limit(cgi::Config::DEFAULT_IO_LIMIT());
 
+	// Parses the query string of the GET request.
 	std::vector<KeyValuePair> key_value_pairs;
 	query.parseQueryString(std::getenv("QUERY_STRING"),
 		&mem_pool, &key_value_pairs);
 	key_value_map.insert(key_value_pairs.begin(), key_value_pairs.end());
 
+	// These limitations are defined in config.h.
 	if (cgi::Config::MAX_MAX_NUM_RESULTS() != 0 &&
 		(query.max_num_results() == 0 || query.max_num_results()
 		> static_cast<UInt64>(cgi::Config::MAX_MAX_NUM_RESULTS())))
@@ -51,8 +60,11 @@ void setupQuery()
 		query.set_io_limit(cgi::Config::MAX_IO_LIMIT());
 }
 
+// If the token type is CHAR_TOKEN, the CGI program splits the given query
+// parameter into character tokens.
 void splitCharTokens()
 {
+	// These special tokens are not divided into characters.
 	static const String START_TAG = "<S>";
 	static const String END_TAG = "</S>";
 
@@ -65,6 +77,8 @@ void splitCharTokens()
 			token = query_str.substr(0, END_TAG.length());
 		else
 		{
+			// A UTF-8 string can be easily divided into code points because
+			// the 1st byte & 0xC0 must be 0x00, 0x40 or 0xC0.
 			UInt32 token_length = 1;
 			while (token_length < query_str.length())
 			{
@@ -76,6 +90,7 @@ void splitCharTokens()
 			token = query_str.substr(0, token_length);
 		}
 
+		// A white-space is inserted before each token.
 		if (!char_tokens_buf.append(' ') || !char_tokens_buf.append(token))
 			SSGNC_ERROR << "ssgnc::StringBuilder::append() failed" << std::endl;
 		query_str = query_str.substr(token.length());
@@ -83,6 +98,8 @@ void splitCharTokens()
 	query_str = char_tokens_buf.str();
 }
 
+// The special characters '<', '>' and '&' must be encoded.
+// The others are printed as is.
 void printToken(const String &token)
 {
 	token_buf.clear();
@@ -131,6 +148,7 @@ void printHtmlHeader()
 		"</head>\n";
 }
 
+// The form is filled with the parameters of the query.
 void printHtmlForm()
 {
 	std::cout << "<form method=\"get\" action=\"\">\n"
@@ -229,9 +247,11 @@ void handleHtmlRequest()
 	printHtmlHeader();
 	std::cout << "<body>\n";
 
+	// If the agent has not been opened correctly, an HTML form is printed.
 	if (!agent.is_open())
 		printHtmlForm();
 
+	// The n-grams read by the agent are printed with tags, <div> and <span>.
 	while (agent.read(&encoded_freq, &tokens))
 	{
 		if (!database.decode(encoded_freq, tokens, &freq, &token_strs))
@@ -256,6 +276,7 @@ void handleTextRequest()
 {
 	std::cout << "Content-Type: text/plain; charset=utf-8\n\n";
 
+	// The n-grams read by the agent are printed without any tags.
 	while (agent.read(&encoded_freq, &tokens))
 	{
 		if (database.decode(encoded_freq, tokens, &ngram_buf))
@@ -272,6 +293,8 @@ void handleXmlRequest()
 		"<search>\n";
 	printXmlQuery();
 
+	// The n-grams read by the agent are printed with tags ---
+	// <results>, <result>, <token> and <freq>.
 	std::cout << "<results>\n";
 	while (agent.read(&encoded_freq, &tokens))
 	{
@@ -296,14 +319,22 @@ void handleXmlRequest()
 
 int main()
 {
+	// The query is initialized with the default settings.
+	// Then, the settings are overwritten by the parameters of the GET request.
+	// Finally, the limitatons are used.
 	setupQuery();
 
+	// If a query is not given, the agent defined as a global variable is not
+	// opened. And, the search result will be empty.
 	query_str = key_value_map["q"];
 	if (!query_str.empty())
 	{
 		if (cgi::Config::TOKEN_TYPE() == cgi::Config::CHAR_TOKEN)
 			splitCharTokens();
 
+		// A dictionary file and an index file are opend.
+		// Then, the query is parsed by using the dictionary file.
+		// After that, the agent is opened by using the index file.
 		if (database.open(cgi::Config::INDEX_DIR()))
 		{
 			if (database.parseQuery(query_str, &query))
@@ -314,6 +345,8 @@ int main()
 		}
 	}
 
+	// The default content type is "html". Prefixes of the valid content types,
+	// such as "h", "t" and "x", also work well.
 	String content_type = key_value_map["c"];
 	if (!content_type.empty())
 	{
