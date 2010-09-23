@@ -153,7 +153,7 @@ void printHtmlForm()
 {
 	std::cout << "<form method=\"get\" action=\"\">\n"
 		"<table>\n"
-		"<caption><a href=\"?\">SSGNC Request Form</a></caption>\n";
+		"<caption><a href=\"?\">SSGNC Search Form</a></caption>\n";
 
 	std::cout << "<tr><td>Query</td>\n"
 		"<td><input type=\"text\" name=\"q\" /></td>\n"

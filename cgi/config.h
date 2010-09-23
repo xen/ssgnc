@@ -18,11 +18,11 @@ public:
 	// parameter into character tokens.
 	static TokenType TOKEN_TYPE() { return WORD_TOKEN; }
 
-	// The default settings.
+	// The default settings. 0 means unlimited.
 	static Int64 DEFAULT_MAX_NUM_RESULTS() { return 100LL; }
 	static Int64 DEFAULT_IO_LIMIT() { return 256LL << 10; }
 
-	// The limitations.
+	// The limitations. 0 means unlimited.
 	static Int64 MAX_MAX_NUM_RESULTS() { return 0LL; }
 	static Int64 MAX_IO_LIMIT() { return 1LL << 20; }
 

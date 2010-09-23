@@ -1,12 +1,10 @@
 Project Home: http://code.google.com/p/ssgnc/
 
-Search System for Giga-scale N-gram Corpus
-
 = Search System for Giga-scale N-gram Corpus =
 
-SSGNC is a search system designed for N-gram corpus of around 100GB. The first version was designed for Google N-gram Corpus and thus the SSGNC was short for Search System for Google N-gram Corpus. But now the system is applicable to other N-gram corpora, so currently the G of SSGNC means the initial letter of Giga-scale.
+The SSGNC is a search system designed for N-gram corpus of around 100GB. The first version was designed for the Google N-gram Corpus and thus the SSGNC was short for Search System for Google N-gram Corpus. But now the system is applicable to other N-gram corpus, so currently the G of the SSGNC means the initial letter of Giga-scale.
 
-This system uses a kind of inverted index for finding specified N-grams but the index structure natively supports only a simple search function to find N-grams which contain one of given tokens. So this system provides filtering functions to find N-grams containing all given tokens or to handle queries containing wildcards.
+This system uses a kind of inverted index for finding specified N-grams but the index structure natively supports only a simple search function to find N-grams containing one of the given tokens. So this system provides filtering functions to find N-grams containing all the given tokens or to handle queries containing wildcards.
 
 == Search Features ==
 
@@ -23,7 +21,7 @@ The latest SSGNC can handle the following kinds of queries.
 
 If a wildcard (`*`) appears in query, it mathces any token of N-grams. Also, there are 4 customizable parameters: 1. the lower limit of frequency, 2. the number of tokens, 3. the maximum number of search results (N-grams), 4. the upper limit of disk I/O.
 
-== English Google N-gram Corpus ==
+== English N-gram Corpus ==
 
  * All Our N-gram are Belong to You
   * http://googleresearch.blogspot.com/2006/08/all-our-n-gram-are-belong-to-you.html
@@ -51,7 +49,16 @@ SSGNC は，100GB 程度の N-gram コーパスを対象として設計された
 
 クエリには，任意のトークンとマッチするワイルドカード（`*`）を含めることができます．また，検索時に指定できる項目としては，頻度の下限，構成トークン数，検索結果として受け取る N-gram 数の上限，ディスク I/O の上限があります．
 
-== 日本語 Google N-gram コーパス ==
+== 日本語 N-gram コーパス ==
 
  * 大規模日本語 n-gram データの公開
   * http://googlejapan.blogspot.com/2007/11/n-gram.html
+ * N-gram コーパス - 日本語ウェブコーパス 2010
+  * http://s-yata.jp/corpus/nwc2010/ngrams/
+
+== サンプル ==
+
+ * 形態素 N-gram 検索
+  * http://s-yata.jp/ssgnc/word
+ * 文字 N-gram 検索
+  * http://s-yata.jp/ssgnc/char
