@@ -124,22 +124,25 @@ Options:
 
 The CGI program *ssgnc-cgi* is a web-based search interface. You can find this command in ssgnc-x.y.z/cgi.
 
-The directory path where database files exist must be specified in the 9th line of ssgnc-x.y.z/cgi/ssgnc-cgi.cc. In default, the directory path is /usr/share/ssgnc.
+In default, the database directory path is /usr/share/ssgnc. Please modify the setting in ssgnc-x.y.z/cgi/config.h. Also, you can change the default values and the limitations of max_num_results and io_limit.
 
 {{{
-#define SSGNC_CGI_INDEX_DIR "/usr/share/ssgnc"
-}}}
+enum TokenType { WORD_TOKEN, CHAR_TOKEN };
 
-Also, you can change default parameters and limitations in setupQuery(). Please see the 38-40th lines and 46the th line of ssgnc-x.y.z/cgi/ssgnc-cgi.cc.
+// The path of the directory where the database files exist.
+static const Int8 *INDEX_DIR() { return "/usr/share/ssgnc"; }
 
-{{{
-static const Int64 DEFAULT_MIN_FREQ = 1LL;
-static const Int64 DEFAULT_MAX_NUM_RESULTS = 100LL;
-static const Int64 DEFAULT_IO_LIMIT = 256LL << 10;
-}}}
+// If the token type is CHAR_TOKEN, the CGI program splits the given query
+// parameter into character tokens.
+static TokenType TOKEN_TYPE() { return WORD_TOKEN; }
 
-{{{
-static const Int64 MAX_IO_LIMIT = 1LL << 20;
+// The default settings. 0 means unlimited.
+static Int64 DEFAULT_MAX_NUM_RESULTS() { return 100LL; }
+static Int64 DEFAULT_IO_LIMIT() { return 256LL << 10; }
+
+// The limitations. 0 means unlimited.
+static Int64 MAX_MAX_NUM_RESULTS() { return 0LL; }
+static Int64 MAX_IO_LIMIT() { return 1LL << 20; }
 }}}
 
 Then, please copy the customized *ssgnc-cgi* into the directory for CGI programs. For example, Apache2 on Ubuntu 10.4 uses /usr/lib/cgi-bin/ for CGI programs. After the copy, please test the CGI program from your favorite browser.

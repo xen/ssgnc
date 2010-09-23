@@ -129,22 +129,24 @@ Options:
 
 SSGNC のアーカイブを展開してできるディレクトリ ssgnc-x.y.z/cgi の中にある ssgnc-cgi というコマンドが検索用の CGI プログラムです．
 
-初期状態では，検索用データの格納場所が /usr/share/ssgnc になっています．必要に応じて，ssgnc-x.y.z/cgi/ssgnc-cgi.cc の 9 行目を編集してください．
+初期設定では，検索用のデータを探す場所が /usr/share/ssgnc になっています．必要に応じて ssgnc-x.y.z/cgi/config.h を編集してください．また，サーバの負荷を抑えるために，取得する検索結果の数とディスク I/O を制限しています．こちらも必要に応じて編集してください．
 
 {{{
-#define SSGNC_CGI_INDEX_DIR "/usr/share/ssgnc"
-}}}
+enum TokenType { WORD_TOKEN, CHAR_TOKEN };
 
-また，極端に高い負荷をかけないように，取得する検索結果の数などを制限しています．必要に応じて，ssgnc-x.y.z/cgi/ssgnc-cgi.cc の 38-40 行目（デフォルト設定）および 46 行目（I/O 上限）前後を編集してください．
+// 検索用のデータがあるディレクトリを指定します．
+static const Int8 *INDEX_DIR() { return "/usr/share/ssgnc"; }
 
-{{{
-static const Int64 DEFAULT_MIN_FREQ = 1LL;
-static const Int64 DEFAULT_MAX_NUM_RESULTS = 100LL;
-static const Int64 DEFAULT_IO_LIMIT = 256LL << 10;
-}}}
+// CHAR_TOKEN にすると，検索クエリを文字単位に分割するようになります．
+static TokenType TOKEN_TYPE() { return WORD_TOKEN; }
 
-{{{
-static const Int64 MAX_IO_LIMIT = 1LL << 20;
+// 初期設定として使用される値です．0 は上限なしとなります．
+static Int64 DEFAULT_MAX_NUM_RESULTS() { return 100LL; }
+static Int64 DEFAULT_IO_LIMIT() { return 256LL << 10; }
+
+// 最大値として使用される値です．0 は上限なしとなります．
+static Int64 MAX_MAX_NUM_RESULTS() { return 0LL; }
+static Int64 MAX_IO_LIMIT() { return 1LL << 20; }
 }}}
 
 後は，make によりコマンドを再ビルドし，ssgnc-cgi の名前を変更して CGI プログラム用のディレクトリ（Ubuntu 10.4 + Apache2 の初期設定では /usr/lib/cgi-bin/）にコピーすれば準備完了です．ブラウザから動作の確認をおこなってください．
