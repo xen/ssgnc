@@ -209,7 +209,9 @@ void printHtmlForm()
 void printXmlQuery()
 {
 	std::cout << "<query>\n"
-		"<str>" << query_str << "</str>\n"
+		"<str>";
+	printToken(query_str);
+	std::cout << "</str>\n"
 		"<min_freq>" << query.min_freq() << "</min_freq>\n"
 		"<min_num_tokens>" << query.min_num_tokens() << "</min_num_tokens>\n"
 		"<max_num_tokens>" << query.max_num_tokens() << "</max_num_tokens>\n"
